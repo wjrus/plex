@@ -34,6 +34,16 @@ class SharesController < ApplicationController
     redirect_to root_path, alert: error.message
   end
 
+  def destroy
+    client = Plex::Client.from_env
+    client.remove_shared_server(required_machine_identifier, params[:share_id])
+    update_cached_share(params[:share_id], [])
+
+    redirect_to root_path, notice: "Plex share removed."
+  rescue Plex::ConfigurationError, Plex::Client::Error, ActiveRecord::ActiveRecordError => error
+    redirect_to root_path, alert: error.message
+  end
+
   private
 
   def refresh_snapshot(include_history: true)

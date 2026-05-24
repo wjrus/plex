@@ -16,4 +16,5 @@ Rails.application.routes.draw do
   patch "users/:plex_user_id/note", to: "users#update_note", as: :user_note
   post "refresh", to: "shares#refresh", as: :refresh_shares
   patch "shares/:share_id", to: "shares#update", as: :share
+  delete "shares/:share_id", to: "shares#destroy"
 end
