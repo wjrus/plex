@@ -21,6 +21,23 @@ compose() {
   docker compose "$@"
 }
 
+require_clean_tracked_worktree() {
+  git diff --quiet || fail "tracked files have unstaged changes. Commit, stash, or inspect them before deploying."
+  git diff --cached --quiet || fail "tracked files have staged changes. Commit, stash, or inspect them before deploying."
+}
+
+update_code() {
+  if [[ ! -d .git ]]; then
+    log "Skipping git pull; .git directory not present"
+    return
+  fi
+
+  require_clean_tracked_worktree
+
+  log "Pulling latest code"
+  git pull --ff-only
+}
+
 env_value() {
   local key="$1"
   local file="$2"
@@ -107,6 +124,7 @@ fi
 
 require_file .env.production
 require_file .env.postgres
+update_code
 
 log "Building app image"
 compose build web

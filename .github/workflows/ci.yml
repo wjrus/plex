@@ -136,6 +136,7 @@ jobs:
           bundler-cache: true
 
       - name: Run System Tests
+        if: ${{ hashFiles('test/system/**/*_test.rb') != '' }}
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432
