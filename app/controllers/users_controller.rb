@@ -12,6 +12,7 @@ class UsersController < ApplicationController
     @filter_params = filter_params
     @notes_by_user_id = PlexUserNote.for_users(@report&.users || [])
     @users = sort_users(filter_users(@report&.users || []))
+    @audit_counts_by_user_id = audit_counts_for(@users)
   rescue Plex::ConfigurationError => error
     @configuration_error = error.message
   rescue ActiveRecord::ActiveRecordError => error
@@ -89,6 +90,13 @@ class UsersController < ApplicationController
         matches_notes?(user) &&
         matches_streaming?(user)
     end
+  end
+
+  def audit_counts_for(users)
+    ShareAuditLog
+      .where(plex_user_id: users.map { |user| user.id.to_s })
+      .group(:plex_user_id)
+      .count
   end
 
   def matches_search?(user)
