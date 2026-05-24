@@ -164,6 +164,11 @@ html.theme-applying *::after {
   color: var(--theme-text);
 }
 
+.site-brand__icon {
+  border-radius: 0.45rem;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--theme-border) 80%, transparent);
+}
+
 .theme-picker {
   display: inline-grid;
   gap: 0.2rem;

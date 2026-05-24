@@ -26,7 +26,10 @@
   <body class="bg-zinc-950 text-zinc-100 antialiased">
     <header class="site-header border-b">
       <div class="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        <%= link_to "Plex Shares", root_path, class: "site-brand text-sm font-semibold text-white" %>
+        <%= link_to root_path, class: "site-brand inline-flex items-center gap-2 text-sm font-semibold text-white" do %>
+          <%= image_tag "/plex-logo-square.svg", alt: "", class: "site-brand__icon size-7", aria: { hidden: true } %>
+          <span>Plex Shares</span>
+        <% end %>
         <label class="theme-picker" aria-label="Theme">
           <span class="theme-picker__label">Theme</span>
           <select class="theme-picker__select" data-theme-select>
