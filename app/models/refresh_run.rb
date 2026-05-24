@@ -1,5 +1,6 @@
 class RefreshRun < ApplicationRecord
-  STATUSES = %w[queued running completed failed].freeze
+  STATUSES = %w[queued running completed failed stale].freeze
+  STALE_AFTER = 10.minutes
 
   validates :machine_identifier, presence: true
   validates :status, inclusion: { in: STATUSES }
@@ -12,11 +13,36 @@ class RefreshRun < ApplicationRecord
   end
 
   def self.active_for(machine_identifier)
+    mark_stale_active!(machine_identifier)
     where(machine_identifier: machine_identifier).active.latest_first.first
+  end
+
+  def self.mark_stale_active!(machine_identifier = nil)
+    scope = active.where(updated_at: ...STALE_AFTER.ago)
+    scope = scope.where(machine_identifier: machine_identifier) if machine_identifier.present?
+
+    scope.find_each(&:mark_stale!)
   end
 
   def active?
     status.in?(%w[queued running])
+  end
+
+  def stale?
+    status == "stale"
+  end
+
+  def stale_active?
+    active? && updated_at < STALE_AFTER.ago
+  end
+
+  def mark_stale!
+    update!(
+      status: "stale",
+      finished_at: Time.current,
+      error_message: "Refresh stopped reporting progress. It may have been interrupted by a deploy or worker restart.",
+      last_message: "Refresh marked stale after #{STALE_AFTER.inspect} without progress"
+    )
   end
 
   def elapsed_seconds

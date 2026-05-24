@@ -1,6 +1,7 @@
 class StatusController < ApplicationController
   def index
     @machine_identifier = ENV["PLEX_MACHINE_IDENTIFIER"].presence
+    RefreshRun.mark_stale_active!(@machine_identifier)
     @database_ok = database_ok?
     @latest_snapshot = @machine_identifier ? ShareSnapshot.latest_for(@machine_identifier) : ShareSnapshot.latest_first.first
     @latest_refresh = @machine_identifier ? RefreshRun.latest_for(@machine_identifier) : RefreshRun.latest_first.first
