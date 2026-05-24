@@ -18,6 +18,7 @@ module Plex
       :last_streamed_at,
       :last_streamed_title,
       :last_streamed_type,
+      :invited_at,
       :pending,
       :all_libraries,
       :library_count,
@@ -44,11 +45,15 @@ module Plex
       shared_servers = client.shared_servers(machine_identifier)
       users_by_id = client.users.index_by { |user| user[:id].to_s }
       last_streams_by_account_id = playback_history_by_account_id(shared_servers)
+      pending_invites = pending_invites_for_server(server_data[:server], library_lookup, shared_servers)
 
       Report.new(
         server: server_data[:server],
         libraries: unique_libraries(library_lookup.values),
-        users: shared_servers.map { |shared_server| build_user(shared_server, library_lookup, users_by_id, last_streams_by_account_id) }.sort_by { |user| user.label.downcase },
+        users: (
+          shared_servers.map { |shared_server| build_user(shared_server, library_lookup, users_by_id, last_streams_by_account_id) } +
+          pending_invites
+        ).sort_by { |user| user.label.downcase },
         generated_at: Time.zone.now
       )
     end
@@ -102,10 +107,59 @@ module Plex
         last_streamed_at: last_stream&.dig(:viewed_at),
         last_streamed_title: stream_title(last_stream),
         last_streamed_type: last_stream&.dig(:type),
+        invited_at: nil,
         pending: truthy?(shared_server[:pending]) || truthy?(server_share[:pending]),
         all_libraries: all_libraries_access,
         library_count: shared_libraries.size,
         libraries: shared_libraries.sort_by { |library| library.title.to_s.downcase }
+      )
+    end
+
+    def pending_invites_for_server(server, library_lookup, shared_servers)
+      existing_user_ids = shared_servers.filter_map do |shared_server|
+        (shared_server[:user_id].presence || shared_server.dig(:user, :id)).to_s.presence
+      end.to_set
+      server_name = server[:name].to_s
+
+      client.requested_invites.filter_map do |invite|
+        invite_id = invite[:id].to_s
+        next if existing_user_ids.include?(invite_id)
+
+        invite_server = Array(invite[:servers]).find { |candidate| candidate[:name].to_s == server_name }
+        next unless truthy?(invite[:server]) && invite_server
+
+        build_pending_invite(invite, invite_server, library_lookup)
+      end
+    rescue NoMethodError, Client::Error => error
+      Rails.logger.warn("[plex.invites] #{error.message}")
+      []
+    end
+
+    def build_pending_invite(invite, invite_server, library_lookup)
+      library_count = invite_server[:num_libraries].to_i
+      all_libraries = unique_libraries(library_lookup.values)
+      libraries = library_count == all_libraries.size ? all_libraries : []
+
+      SharedUser.new(
+        id: invite[:id],
+        share_id: nil,
+        title: invite[:friendly_name].presence || invite[:username],
+        username: invite[:username],
+        email: invite[:email],
+        thumb: invite[:thumb],
+        home: truthy?(invite[:home]),
+        restricted: false,
+        allow_sync: false,
+        allow_channels: false,
+        last_seen_at: nil,
+        last_streamed_at: nil,
+        last_streamed_title: nil,
+        last_streamed_type: nil,
+        invited_at: invite[:created_at],
+        pending: true,
+        all_libraries: libraries.any? && libraries.size == all_libraries.size,
+        library_count: library_count,
+        libraries: libraries
       )
     end
 

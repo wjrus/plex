@@ -48,6 +48,10 @@ module Plex
       shared_server_document(fetch("/api/servers/#{machine_identifier}/shared_servers"))
     end
 
+    def requested_invites
+      media_container(fetch("/api/invites/requested"))[:invites]
+    end
+
     def playback_history(account_id: nil, size: 100, offset: 0)
       return [] unless server_base_url.present?
 
@@ -173,6 +177,7 @@ module Plex
       {
         users: Array(container["User"]).map { |user| normalize_user_hash(user) },
         servers: Array(container["Server"]).map { |server| normalize_hash(server) },
+        invites: Array(container["Invite"]).map { |invite| normalize_invite_hash(invite) },
         metadata: Array(container["Metadata"]).map { |metadata| normalize_hash(metadata) }
       }
     end
@@ -181,6 +186,7 @@ module Plex
       {
         users: elements(document, "//User").map { |element| user_attributes(element) },
         servers: elements(document, "//Server").map { |element| attributes(element) },
+        invites: elements(document, "//Invite").map { |element| invite_attributes(element) },
         metadata: elements(document, "//Video|//Track|//Metadata").map { |element| attributes(element) }
       }
     end
@@ -225,6 +231,18 @@ module Plex
     end
 
     def normalize_user_hash(hash)
+      normalized = normalize_hash(hash)
+      normalized[:servers] = Array(hash["Server"]).map { |server| normalize_hash(server) }
+      normalized
+    end
+
+    def invite_attributes(element)
+      attributes(element).merge(
+        servers: elements(element, "Server").map { |server| attributes(server) }
+      )
+    end
+
+    def normalize_invite_hash(hash)
       normalized = normalize_hash(hash)
       normalized[:servers] = Array(hash["Server"]).map { |server| normalize_hash(server) }
       normalized

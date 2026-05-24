@@ -24,6 +24,10 @@ module Plex
         ]
       end
 
+      def requested_invites
+        []
+      end
+
       def playback_history(size:, offset:, account_id: nil)
         return [] unless account_id.nil? && offset.zero?
 
@@ -111,6 +115,43 @@ module Plex
         )
 
         assert_nil report.send(:history_viewed_after)
+      end
+    end
+
+    test "includes pending requested invites for the server" do
+      with_history_env do
+        client = FakeClient.new(
+          server_payload: {
+            server: { name: "Local Plex" },
+            sections: [
+              { id: "1", key: "1", title: "Movies", type: "movie" },
+              { id: "2", key: "2", title: "Shows", type: "show" }
+            ]
+          },
+          shared_payload: []
+        )
+        client.define_singleton_method(:requested_invites) do
+          [
+            {
+              id: "invite-one",
+              username: "pending-user",
+              email: "pending@example.com",
+              friendly_name: "Pending User",
+              created_at: "1704307031",
+              server: "1",
+              home: "0",
+              servers: [ { name: "Local Plex", num_libraries: "2" } ]
+            }
+          ]
+        end
+
+        report = SharingReport.new(client: client, machine_identifier: "machine-one").call
+        user = report.users.first
+
+        assert_predicate user, :pending
+        assert_equal "Pending User", user.label
+        assert_equal "1704307031", user.invited_at
+        assert_equal [ "Movies", "Shows" ], user.libraries.map(&:title)
       end
     end
 

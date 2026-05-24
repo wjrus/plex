@@ -23,6 +23,10 @@ module Plex
         ]
       end
 
+      def requested_invites
+        []
+      end
+
       def playback_history(size:, offset:, account_id: nil)
         return [] unless account_id.nil? && offset.zero?
 

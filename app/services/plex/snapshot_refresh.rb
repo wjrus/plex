@@ -39,7 +39,8 @@ module Plex
       attributes.merge(
         last_streamed_at: previous["last_streamed_at"],
         last_streamed_title: previous["last_streamed_title"],
-        last_streamed_type: previous["last_streamed_type"]
+        last_streamed_type: previous["last_streamed_type"],
+        invited_at: attributes[:invited_at]
       )
     end
 
