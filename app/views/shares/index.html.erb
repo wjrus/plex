@@ -245,6 +245,7 @@
                         class: "mt-2",
                         data: {
                           action: "submit->confirmation#confirmSubmit",
+                          confirm_library_summary: "true",
                           confirm_when_empty: "true",
                           confirm_title: "Remove Plex share?",
                           confirm_body: "Saving with no libraries selected will revoke this user's access to this Plex server.",
@@ -259,6 +260,7 @@
                                 library.id,
                                 selected_library_ids.include?(library.id.to_s),
                                 id: input_id,
+                                data: { library_title: library.title },
                                 class: "mt-0.5 size-4 rounded border-zinc-700 bg-zinc-950 text-cyan-300 focus:ring-cyan-300/30" %>
                               <span class="min-w-0">
                                 <span class="block truncate font-semibold text-zinc-100"><%= library.title %></span>
