@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_24_050000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_24_051000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -23,6 +23,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_24_050000) do
     t.datetime "updated_at", null: false
     t.string "username"
     t.index ["plex_user_id"], name: "index_plex_user_notes_on_plex_user_id", unique: true
+  end
+
+  create_table "refresh_runs", force: :cascade do |t|
+    t.integer "account_lookups_completed", default: 0, null: false
+    t.integer "account_lookups_total", default: 0, null: false
+    t.string "admin_email"
+    t.datetime "created_at", null: false
+    t.text "error_message"
+    t.datetime "finished_at"
+    t.integer "history_pages_retrieved", default: 0, null: false
+    t.integer "history_rows_retrieved", default: 0, null: false
+    t.integer "history_users_matched", default: 0, null: false
+    t.integer "history_users_remaining", default: 0, null: false
+    t.boolean "include_history", default: false, null: false
+    t.string "last_message"
+    t.string "machine_identifier", null: false
+    t.bigint "share_snapshot_id"
+    t.datetime "started_at"
+    t.string "status", null: false
+    t.datetime "updated_at", null: false
+    t.index ["machine_identifier", "created_at"], name: "index_refresh_runs_on_machine_identifier_and_created_at"
+    t.index ["share_snapshot_id"], name: "index_refresh_runs_on_share_snapshot_id"
+    t.index ["status"], name: "index_refresh_runs_on_status"
   end
 
   create_table "share_audit_logs", force: :cascade do |t|

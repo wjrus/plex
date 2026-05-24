@@ -2,9 +2,10 @@ class SharesController < ApplicationController
   def index
     @machine_identifier = required_machine_identifier
     @snapshot = ShareSnapshot.latest_for(@machine_identifier)
-    @snapshot ||= refresh_snapshot
-    @report = @snapshot.to_report
-    @notes_by_user_id = PlexUserNote.for_users(@report.users)
+    @refresh_run = RefreshRun.latest_for(@machine_identifier)
+    @active_refresh_run = RefreshRun.active_for(@machine_identifier)
+    @report = @snapshot&.to_report
+    @notes_by_user_id = PlexUserNote.for_users(@report&.users || [])
   rescue Plex::ConfigurationError => error
     @configuration_error = error.message
   rescue Plex::Client::Error, ActiveRecord::ActiveRecordError => error
@@ -12,8 +13,21 @@ class SharesController < ApplicationController
   end
 
   def refresh
-    refresh_snapshot(include_history: false)
-    redirect_to root_path, notice: "Plex shares refreshed."
+    active_run = RefreshRun.active_for(required_machine_identifier)
+    if active_run
+      redirect_to root_path, notice: "Plex refresh is already #{active_run.status}."
+      return
+    end
+
+    refresh_run = RefreshRun.create!(
+      machine_identifier: required_machine_identifier,
+      status: "queued",
+      admin_email: current_admin_email,
+      include_history: truthy_param?(params[:include_history])
+    )
+    PlexRefreshJob.perform_later(refresh_run.id)
+
+    redirect_to root_path, notice: "Plex refresh queued."
   rescue Plex::ConfigurationError, Plex::Client::Error, ActiveRecord::ActiveRecordError => error
     redirect_to root_path, alert: error.message
   end

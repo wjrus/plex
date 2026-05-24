@@ -1,6 +1,8 @@
 require "test_helper"
 
 class SharesControllerTest < ActionDispatch::IntegrationTest
+  include ActiveJob::TestHelper
+
   FakeClient = Struct.new(:removed_share_id, :created_invite, :updated_share) do
     def create_shared_server(_machine_identifier, invited_email, library_section_ids, allow_sync: false)
       self.created_invite = {
@@ -49,6 +51,8 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
+    clear_enqueued_jobs
+    clear_performed_jobs
     ENV["PLEX_MACHINE_IDENTIFIER"] = @original_machine_identifier
     ENV["ADMIN_USERS"] = @original_admin_users
     ENV["ADMIN_USER"] = @original_admin_user
@@ -62,6 +66,28 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "input[type=checkbox][name='library_ids[]']"
     assert_select "select[name='library_ids[]']", count: 0
+  end
+
+  test "admin queues an async refresh" do
+    assert_enqueued_with(job: PlexRefreshJob) do
+      post refresh_shares_path
+    end
+
+    assert_redirected_to root_path
+    refresh_run = RefreshRun.latest_for("machine-one")
+    assert_equal "queued", refresh_run.status
+    assert_equal "wjr@wjr.us", refresh_run.admin_email
+    assert_not refresh_run.include_history
+  end
+
+  test "admin cannot queue duplicate refreshes" do
+    RefreshRun.create!(machine_identifier: "machine-one", status: "running")
+
+    assert_no_enqueued_jobs do
+      post refresh_shares_path
+    end
+
+    assert_redirected_to root_path
   end
 
   test "admin can invite a user to selected libraries" do
