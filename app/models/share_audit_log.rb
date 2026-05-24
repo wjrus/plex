@@ -7,6 +7,7 @@ class ShareAuditLog < ApplicationRecord
     libraries_added
     libraries_removed
     libraries_changed
+    user_note_updated
     pending_invite_canceled
   ].freeze
 
@@ -61,6 +62,8 @@ class ShareAuditLog < ApplicationRecord
       "removed #{libraries_removed.to_sentence} from #{target_name}"
     when "pending_invite_canceled"
       "canceled pending invite for #{target_name}"
+    when "user_note_updated"
+      "updated notes for #{target_name}"
     else
       "changed library access for #{target_name}"
     end
@@ -80,6 +83,8 @@ class ShareAuditLog < ApplicationRecord
       ].compact.join(" · ")
     when "pending_invite_canceled"
       "Pending invite was canceled before acceptance"
+    when "user_note_updated"
+      "Local admin note changed"
     else
       ("Now shared: #{libraries_after.to_sentence}" if libraries_after.present?)
     end

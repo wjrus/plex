@@ -74,6 +74,12 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     note = PlexUserNote.find_by!(plex_user_id: "42")
     assert_equal "Keep an eye on shared access.", note.notes
     assert_equal "admin@example.com", note.last_edited_by
+
+    log = ShareAuditLog.recent.first
+    assert_equal "user_note_updated", log.action
+    assert_equal "viewer", log.target_label
+    assert_equal "admin@example.com", log.admin_email
+    assert_equal "updated notes for viewer", log.summary
   end
 
   private

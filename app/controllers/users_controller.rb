@@ -38,6 +38,7 @@ class UsersController < ApplicationController
     note = PlexUserNote.find_or_initialize_by(plex_user_id: params[:plex_user_id])
     note.assign_attributes(note_params.merge(last_edited_by: current_admin_email))
     note.save!
+    record_note_update(note) if note.saved_change_to_notes?
 
     redirect_to note_redirect_path, notice: "User note saved."
   rescue ActiveRecord::ActiveRecordError => error
@@ -48,6 +49,18 @@ class UsersController < ApplicationController
 
   def note_params
     params.require(:plex_user_note).permit(:username, :email, :notes)
+  end
+
+  def record_note_update(note)
+    ShareAuditLog.record!(
+      action: "user_note_updated",
+      admin_email: current_admin_email,
+      target: {
+        id: note.plex_user_id,
+        label: note.username.presence || note.email.presence || note.plex_user_id,
+        email: note.email
+      }
+    )
   end
 
   def note_redirect_path
