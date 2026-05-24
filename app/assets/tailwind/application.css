@@ -190,6 +190,20 @@ html.theme-applying *::after {
   padding: 0.4rem 0.55rem;
 }
 
+.user-row-link {
+  cursor: pointer;
+  transition: background-color 0.15s ease, outline-color 0.15s ease;
+}
+
+.user-row-link:hover {
+  background-color: color-mix(in srgb, var(--theme-accent) 8%, transparent);
+}
+
+.user-row-link:focus-visible {
+  outline: 2px solid var(--theme-focus);
+  outline-offset: -2px;
+}
+
 html[data-theme] :is(.bg-zinc-950, .bg-zinc-900, .bg-zinc-900\/80) {
   background-color: var(--theme-panel) !important;
 }

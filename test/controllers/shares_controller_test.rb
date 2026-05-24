@@ -75,6 +75,8 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "input[type=checkbox][name='library_ids[]']"
     assert_select "select[name='library_ids[]']", count: 0
+    assert_select "tr[role='link'][data-controller='row-link']"
+    assert_select "a", text: "Open user", count: 0
   end
 
   test "admin queues an async refresh" do
