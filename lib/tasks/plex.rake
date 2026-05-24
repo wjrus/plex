@@ -11,11 +11,21 @@ namespace :plex do
     puts "History scan: page_size=#{ENV.fetch('PLEX_HISTORY_PAGE_SIZE', '1000')} max_pages=#{ENV.fetch('PLEX_HISTORY_MAX_PAGES', 'all')}"
     history_window = ENV["PLEX_HISTORY_DAYS"].presence
     puts "History window: #{history_window && !history_window.casecmp('all').zero? ? "#{history_window}d" : "all"}"
+    refresh_run = RefreshRun.create!(
+      machine_identifier: machine_identifier,
+      status: "running",
+      admin_email: ENV["ADMIN_EMAIL"].presence || "rake",
+      include_history: true,
+      started_at: Time.current,
+      last_message: "Command-line refresh started"
+    )
+    progress_recorder = Plex::RefreshProgressRecorder.new(refresh_run)
 
     snapshot = Plex::SnapshotRefresh.new(
       client: Plex::Client.from_env,
       machine_identifier: machine_identifier,
       progress: lambda do |event|
+        progress_recorder.call(event)
         if event[:phase] == "account"
           puts "Account lookup #{event.fetch(:index)}/#{event.fetch(:total)}: #{event.fetch(:label)}; #{event.fetch(:matches)} users matched, #{event.fetch(:remaining)} remaining"
         else
@@ -23,7 +33,7 @@ namespace :plex do
           message += " (#{event.fetch(:stop_reason)})" if event[:stop_reason].present?
           puts message
         end
-        checkpoint = ShareSnapshot.checkpoint_streams!(machine_identifier, event[:streams])
+        checkpoint = ShareSnapshot.latest_for(machine_identifier)
         puts "Checkpoint snapshot ##{checkpoint.id} saved" if checkpoint&.id
         if event[:stop_reason].present? && event[:remaining_labels].present?
           puts "Unmatched users: #{event[:remaining_labels].to_sentence}"
@@ -42,5 +52,19 @@ namespace :plex do
     puts "Users with last-streamed data: #{streamed_count}"
     puts "Fetched at: #{snapshot.fetched_at}"
     puts "Elapsed: #{elapsed.round(1)}s"
+    refresh_run.update!(
+      status: "completed",
+      share_snapshot_id: snapshot.id,
+      finished_at: Time.current,
+      last_message: "Saved snapshot ##{snapshot.id}"
+    )
+  rescue StandardError => error
+    refresh_run&.update!(
+      status: "failed",
+      finished_at: Time.current,
+      error_message: error.message,
+      last_message: "Command-line refresh failed"
+    )
+    raise
   end
 end
