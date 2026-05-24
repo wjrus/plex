@@ -1,14 +1,13 @@
 <% content_for :title, "Plex User" %>
 
 <div class="mx-auto flex w-full max-w-[100rem] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-  <header class="flex flex-col gap-4 border-b border-zinc-800 pb-5 sm:flex-row sm:items-end sm:justify-between">
-    <div>
-      <p class="text-sm font-medium uppercase tracking-wide text-cyan-300">Plex user</p>
+  <header class="flex min-h-16 flex-col gap-4 border-b border-zinc-800 pb-5 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
       <% if @user.present? %>
-        <h1 class="mt-2 text-3xl font-semibold tracking-normal text-white"><%= @user.label %></h1>
-        <p class="mt-2 text-sm text-zinc-400"><%= @user.email.presence || @user.username.presence || "No email or username in snapshot" %></p>
+        <h1 class="text-3xl font-semibold tracking-normal text-white"><%= @user.label %></h1>
+        <span class="text-sm text-zinc-400"><%= @user.email.presence || @user.username.presence || "No email or username in snapshot" %></span>
       <% else %>
-        <h1 class="mt-2 text-3xl font-semibold tracking-normal text-white">User unavailable</h1>
+        <h1 class="text-3xl font-semibold tracking-normal text-white">User unavailable</h1>
       <% end %>
     </div>
     <%= render "shared/page_nav" %>
