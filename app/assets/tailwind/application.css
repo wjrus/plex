@@ -154,6 +154,32 @@ html.theme-applying *::after {
   transition: none !important;
 }
 
+:where(
+  a[href],
+  button:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  label[for],
+  select:not(:disabled),
+  summary,
+  [role="button"]:not([aria-disabled="true"]),
+  [role="link"]:not([aria-disabled="true"])
+) {
+  cursor: pointer;
+}
+
+:where(
+  button:disabled,
+  input[type="button"]:disabled,
+  input[type="reset"]:disabled,
+  input[type="submit"]:disabled,
+  select:disabled,
+  [aria-disabled="true"]
+) {
+  cursor: not-allowed;
+}
+
 .site-header {
   background-color: color-mix(in srgb, var(--theme-bg) 92%, transparent);
   border-color: var(--theme-border);
