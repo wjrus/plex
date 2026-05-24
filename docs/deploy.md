@@ -179,6 +179,7 @@ curl -fsSI -H 'Host: plexadmin.wjr.us' http://127.0.0.1:3010/up
 docker compose ps
 docker compose exec web ./bin/rails console
 docker compose run --rm web ./bin/rails plex:refresh
+docker compose logs -f daily_refresh
 ```
 
 ## Backups

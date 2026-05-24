@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+schedule_time="${PLEX_DAILY_REFRESH_AT:-04:15}"
+history_days="${PLEX_DAILY_REFRESH_DAYS:-1}"
+
+seconds_until_next_run() {
+  ruby -e '
+    hour, minute = ARGV.fetch(0).split(":", 2).map(&:to_i)
+    now = Time.now
+    target = Time.new(now.year, now.month, now.day, hour, minute, 0, now.utc_offset)
+    target += 86_400 if target <= now
+    puts [(target - now).ceil, 1].max
+  ' "$schedule_time"
+}
+
+while true; do
+  sleep_seconds="$(seconds_until_next_run)"
+  echo "Daily Plex refresh scheduled for ${schedule_time}; sleeping ${sleep_seconds}s"
+  sleep "$sleep_seconds"
+
+  echo "Starting daily Plex refresh for the past ${history_days} day(s)"
+  if PLEX_HISTORY_DAYS="$history_days" ./bin/rails plex:refresh; then
+    echo "Daily Plex refresh completed"
+  else
+    echo "Daily Plex refresh failed" >&2
+  fi
+done

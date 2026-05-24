@@ -63,10 +63,9 @@ matches the hostname you configured.
 ## Refresh behavior
 
 The root page renders the newest `ShareSnapshot` row for the configured machine
-identifier. If no snapshot exists yet, it fetches once from Plex and saves one.
-After that, the "Refresh from Plex" button refreshes share/library metadata
-without scanning playback history, preserving existing last-streamed data from
-previous snapshots.
+identifier. The "Refresh from Plex" button queues a metadata refresh without
+scanning playback history, preserving existing last-streamed data from previous
+snapshots.
 
 For the full history-backed refresh, prefer the rake task:
 
@@ -83,6 +82,10 @@ PLEX_HISTORY_DAYS=all bin/rails plex:refresh
 ```
 
 Use the rake task when you want to refresh last-streamed history.
+
+In Docker Compose production, the `daily_refresh` service runs the same rake task
+once per day with `PLEX_DAILY_REFRESH_DAYS=1`. Set `PLEX_DAILY_REFRESH_AT` in
+`.env.production` to choose the daily wall-clock time, using `HH:MM`.
 
 ## Useful commands
 

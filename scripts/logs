@@ -12,11 +12,12 @@ Usage:
 Examples:
   ./scripts/logs
   ./scripts/logs web
+  ./scripts/logs daily_refresh
   ./scripts/logs db
   ./scripts/logs all
 
 When no service is given, this follows web logs. The shorthand "all" expands to
-web and db.
+web, daily_refresh, and db.
 USAGE
   exit 0
 fi
@@ -28,7 +29,7 @@ fi
 services=()
 for service in "$@"; do
   case "$service" in
-    all) services+=(web db) ;;
+    all) services+=(web daily_refresh db) ;;
     *) services+=("$service") ;;
   esac
 done
