@@ -39,8 +39,10 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", "Viewer"
-    assert_select "h2", "Shared Libraries"
+    assert_select "h2", "Library Access"
+    assert_select "input[type=checkbox][name='library_ids[]']"
     assert_select "textarea[name='plex_user_note[notes]']"
+    assert_select "button", "Remove user from Plex shares"
   end
 
   test "filters users by search and notes" do

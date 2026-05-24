@@ -21,7 +21,9 @@ class UsersController < ApplicationController
   def show
     @machine_identifier = required_machine_identifier
     @snapshot = ShareSnapshot.latest_for(@machine_identifier)
-    @user = @snapshot&.to_report&.users&.find { |user| user.id.to_s == params[:plex_user_id].to_s }
+    @report = @snapshot&.to_report
+    @libraries = @report&.libraries || []
+    @user = @report&.users&.find { |user| user.id.to_s == params[:plex_user_id].to_s }
     raise ActiveRecord::RecordNotFound, "Unknown Plex user" unless @user
 
     @note = PlexUserNote.find_by(plex_user_id: @user.id.to_s)

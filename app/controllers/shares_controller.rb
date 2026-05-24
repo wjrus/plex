@@ -78,9 +78,9 @@ class SharesController < ApplicationController
 
     update_cached_share(params[:share_id], library_ids)
     record_share_update(params[:share_id], current_user, previous_libraries, selected_libraries)
-    redirect_to root_path, notice: "Plex share updated."
+    redirect_to share_redirect_path, notice: "Plex share updated."
   rescue Plex::ConfigurationError, Plex::Client::Error, ActiveRecord::ActiveRecordError => error
-    redirect_to root_path, alert: error.message
+    redirect_to share_redirect_path, alert: error.message
   end
 
   def bulk_update
@@ -254,6 +254,10 @@ class SharesController < ApplicationController
   def libraries_for_ids(snapshot, library_ids)
     libraries_by_id = snapshot&.libraries.to_a.index_by { |library| library["id"].to_s }
     library_ids.filter_map { |library_id| libraries_by_id[library_id.to_s] }
+  end
+
+  def share_redirect_path
+    url_from(params[:return_to]) || root_path
   end
 
   def record_share_update(share_id, user, previous_libraries, selected_libraries)
