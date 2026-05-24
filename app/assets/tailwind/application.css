@@ -269,6 +269,12 @@ html[data-theme] :is(.hover\:bg-cyan-200:hover) {
   background-color: var(--theme-accent-strong) !important;
 }
 
+html[data-theme] :is(.hover\:bg-zinc-900:hover) {
+  background-color: var(--theme-accent-strong) !important;
+  border-color: var(--theme-accent-strong) !important;
+  color: var(--theme-accent-ink) !important;
+}
+
 html[data-theme] :is(input, select, textarea) {
   accent-color: var(--theme-accent);
   background-color: var(--theme-panel-strong);
