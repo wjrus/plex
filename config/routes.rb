@@ -14,6 +14,7 @@ Rails.application.routes.draw do
   root "shares#index"
   get "log", to: "share_audit_logs#index", as: :share_audit_logs
   get "users", to: "users#index", as: :users
+  get "users/:plex_user_id", to: "users#show", as: :user
   patch "users/:plex_user_id/note", to: "users#update_note", as: :user_note
   post "refresh", to: "shares#refresh", as: :refresh_shares
   post "shares", to: "shares#create"

@@ -15,6 +15,20 @@ class UsersController < ApplicationController
     @plex_error = error.message
   end
 
+  def show
+    @machine_identifier = required_machine_identifier
+    @snapshot = ShareSnapshot.latest_for(@machine_identifier)
+    @user = @snapshot&.to_report&.users&.find { |user| user.id.to_s == params[:plex_user_id].to_s }
+    raise ActiveRecord::RecordNotFound, "Unknown Plex user" unless @user
+
+    @note = PlexUserNote.find_by(plex_user_id: @user.id.to_s)
+    @audit_logs = ShareAuditLog.where(plex_user_id: @user.id.to_s).recent.limit(50)
+  rescue Plex::ConfigurationError => error
+    @configuration_error = error.message
+  rescue ActiveRecord::ActiveRecordError => error
+    @plex_error = error.message
+  end
+
   def update_note
     note = PlexUserNote.find_or_initialize_by(plex_user_id: params[:plex_user_id])
     note.assign_attributes(note_params.merge(last_edited_by: current_admin_email))

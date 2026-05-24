@@ -38,7 +38,7 @@
           <% @users.each do |user| %>
             <% note = @notes_by_user_id[user.id.to_s] %>
             <tr>
-              <td class="px-4 py-3 font-medium text-white"><%= user.title.presence || user.label %></td>
+              <td class="px-4 py-3 font-medium text-white"><%= link_to user.title.presence || user.label, user_path(user.id), class: "hover:text-cyan-300" %></td>
               <td class="px-4 py-3 text-zinc-300"><%= user.email.presence || "unknown" %></td>
               <td class="px-4 py-3">
                 <% if user.pending %>

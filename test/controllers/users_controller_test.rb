@@ -34,6 +34,15 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[aria-label*='Last Streamed, sorted descending']"
   end
 
+  test "shows user details" do
+    get user_path("42")
+
+    assert_response :success
+    assert_select "h1", "Viewer"
+    assert_select "h2", "Shared Libraries"
+    assert_select "textarea[name='plex_user_note[notes]']"
+  end
+
   test "admin can save local notes for a Plex user" do
     patch user_note_path("42"), params: {
       plex_user_note: {
