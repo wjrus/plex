@@ -21,7 +21,7 @@ module ApplicationHelper
       "#{label}, not sorted. Activate to sort #{next_direction == 'asc' ? 'ascending' : 'descending'}."
     end
 
-    link_to users_path(sort: sort, direction: next_direction), class: "inline-flex items-center gap-1 hover:text-white", aria: { label: aria_label } do
+    link_to users_path(request.query_parameters.merge(sort: sort, direction: next_direction)), class: "inline-flex items-center gap-1 hover:text-white", aria: { label: aria_label } do
       safe_join([
         label,
         tag.span(indicator, aria: { hidden: true }, class: "text-[0.68rem] leading-none text-zinc-500")

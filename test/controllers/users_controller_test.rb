@@ -43,6 +43,21 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "textarea[name='plex_user_note[notes]']"
   end
 
+  test "filters users by search and notes" do
+    get users_path(q: "viewer", notes: "with")
+
+    assert_response :success
+    assert_select "td", text: "viewer@example.com"
+    assert_select "p", text: "1 user shown"
+  end
+
+  test "shows empty filtered state" do
+    get users_path(q: "not-a-real-user")
+
+    assert_response :success
+    assert_select "p", text: "No users match those filters."
+  end
+
   test "admin can save local notes for a Plex user" do
     patch user_note_path("42"), params: {
       plex_user_note: {

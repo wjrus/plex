@@ -7,8 +7,11 @@ class UsersController < ApplicationController
     @snapshot = ShareSnapshot.latest_for(@machine_identifier)
     @sort = params[:sort].presence_in(SORT_COLUMNS) || "name"
     @direction = params[:direction].presence_in(SORT_DIRECTIONS) || default_direction_for(@sort)
-    @users = sort_users(@snapshot ? @snapshot.to_report.users : [])
-    @notes_by_user_id = PlexUserNote.for_users(@users)
+    @report = @snapshot&.to_report
+    @libraries = @report&.libraries || []
+    @filter_params = filter_params
+    @notes_by_user_id = PlexUserNote.for_users(@report&.users || [])
+    @users = sort_users(filter_users(@report&.users || []))
   rescue Plex::ConfigurationError => error
     @configuration_error = error.message
   rescue ActiveRecord::ActiveRecordError => error
@@ -46,7 +49,7 @@ class UsersController < ApplicationController
   end
 
   def note_redirect_path
-    url_from(params[:return_to]) || users_path(sort: params[:sort], direction: params[:direction])
+    url_from(params[:return_to]) || users_path(filter_params.merge(sort: params[:sort], direction: params[:direction]))
   end
 
   def required_machine_identifier
@@ -57,6 +60,67 @@ class UsersController < ApplicationController
   def sort_users(users)
     sorted_users = users.sort_by { |user| sort_key_for(user) }
     @direction == "desc" ? sorted_users.reverse : sorted_users
+  end
+
+  def filter_params
+    params.permit(:q, :status, :library_id, :notes, :streaming)
+  end
+
+  def filter_users(users)
+    users.select do |user|
+      matches_search?(user) &&
+        matches_status?(user) &&
+        matches_library?(user) &&
+        matches_notes?(user) &&
+        matches_streaming?(user)
+    end
+  end
+
+  def matches_search?(user)
+    query = @filter_params[:q].to_s.strip.downcase
+    return true if query.blank?
+
+    [ user.label, user.username, user.email ].compact.any? { |value| value.downcase.include?(query) }
+  end
+
+  def matches_status?(user)
+    case @filter_params[:status]
+    when "pending"
+      user.pending
+    when "accepted"
+      !user.pending
+    else
+      true
+    end
+  end
+
+  def matches_library?(user)
+    library_id = @filter_params[:library_id].to_s
+    return true if library_id.blank?
+
+    user.libraries.any? { |library| library.id.to_s == library_id }
+  end
+
+  def matches_notes?(user)
+    case @filter_params[:notes]
+    when "with"
+      @notes_by_user_id[user.id.to_s]&.notes.present?
+    when "without"
+      @notes_by_user_id[user.id.to_s]&.notes.blank?
+    else
+      true
+    end
+  end
+
+  def matches_streaming?(user)
+    case @filter_params[:streaming]
+    when "streamed"
+      user.last_streamed_at.present?
+    when "never"
+      user.last_streamed_at.blank?
+    else
+      true
+    end
   end
 
   def sort_key_for(user)

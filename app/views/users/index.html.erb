@@ -17,11 +17,67 @@
       <h2 class="text-lg font-semibold text-amber-100">Unavailable</h2>
       <p class="mt-2 text-sm leading-6 text-amber-50/80"><%= @configuration_error || @plex_error %></p>
     </section>
-  <% elsif @users.empty? %>
+  <% elsif @snapshot.blank? %>
     <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
       <p class="text-sm leading-6 text-zinc-400">No local snapshot yet. Refresh Plex shares from the main page first.</p>
     </section>
-  <% else %>
+  <% end %>
+
+  <% if @snapshot.present? %>
+    <section class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+      <%= form_with url: users_path, method: :get, class: "grid gap-3 lg:grid-cols-[minmax(14rem,1fr)_repeat(4,minmax(10rem,12rem))_auto]" do %>
+        <div>
+          <label for="q" class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Search</label>
+          <%= search_field_tag :q,
+            @filter_params[:q],
+            id: "q",
+            placeholder: "Name or email",
+            class: "mt-2 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" %>
+        </div>
+        <div>
+          <label for="status" class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Invitation</label>
+          <%= select_tag :status,
+            options_for_select([ [ "Any", "" ], [ "Accepted", "accepted" ], [ "Pending", "pending" ] ], @filter_params[:status]),
+            id: "status",
+            class: "mt-2 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" %>
+        </div>
+        <div>
+          <label for="library_id" class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Library</label>
+          <%= select_tag :library_id,
+            options_for_select([ [ "Any", "" ] ] + @libraries.map { |library| [ library.title, library.id ] }, @filter_params[:library_id]),
+            id: "library_id",
+            class: "mt-2 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" %>
+        </div>
+        <div>
+          <label for="notes" class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Notes</label>
+          <%= select_tag :notes,
+            options_for_select([ [ "Any", "" ], [ "Has notes", "with" ], [ "No notes", "without" ] ], @filter_params[:notes]),
+            id: "notes",
+            class: "mt-2 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" %>
+        </div>
+        <div>
+          <label for="streaming" class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Streaming</label>
+          <%= select_tag :streaming,
+            options_for_select([ [ "Any", "" ], [ "Has streamed", "streamed" ], [ "Never/unknown", "never" ] ], @filter_params[:streaming]),
+            id: "streaming",
+            class: "mt-2 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" %>
+        </div>
+        <div class="flex items-end gap-2">
+          <button type="submit" class="inline-flex items-center justify-center rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-zinc-950">Filter</button>
+          <%= link_to "Clear", users_path, class: "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+        </div>
+        <%= hidden_field_tag :sort, @sort %>
+        <%= hidden_field_tag :direction, @direction %>
+      <% end %>
+      <p class="mt-3 text-xs text-zinc-500"><%= pluralize(@users.size, "user") %> shown</p>
+    </section>
+  <% end %>
+
+  <% if @snapshot.present? && @users.empty? %>
+    <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
+      <p class="text-sm leading-6 text-zinc-400">No users match those filters.</p>
+    </section>
+  <% elsif @users.any? %>
     <section class="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">
       <table class="min-w-full divide-y divide-zinc-800 text-left text-sm">
         <thead class="bg-zinc-900/80 text-xs uppercase tracking-wide text-zinc-400">
@@ -69,6 +125,9 @@
                 <%= form_with scope: :plex_user_note, url: user_note_path(user.id), method: :patch, class: "flex items-start gap-2" do |form| %>
                   <%= hidden_field_tag :sort, @sort %>
                   <%= hidden_field_tag :direction, @direction %>
+                  <% @filter_params.each do |key, value| %>
+                    <%= hidden_field_tag key, value if value.present? %>
+                  <% end %>
                   <%= form.hidden_field :username, value: user.username %>
                   <%= form.hidden_field :email, value: user.email %>
                   <%= form.text_area :notes,
