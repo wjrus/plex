@@ -67,6 +67,15 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "p", text: "No users match those filters."
   end
 
+  test "exports users csv" do
+    get users_path(format: :csv)
+
+    assert_response :success
+    assert_includes @response.media_type, "text/csv"
+    assert_includes @response.body, "name,username,email,status"
+    assert_includes @response.body, "Viewer,viewer,viewer@example.com,accepted"
+  end
+
   test "admin can save local notes for a Plex user" do
     patch user_note_path("42"), params: {
       plex_user_note: {

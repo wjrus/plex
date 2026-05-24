@@ -1,4 +1,6 @@
 class UsersController < ApplicationController
+  require "csv"
+
   SORT_COLUMNS = %w[name last_streamed].freeze
   SORT_DIRECTIONS = %w[asc desc].freeze
 
@@ -13,6 +15,15 @@ class UsersController < ApplicationController
     @notes_by_user_id = PlexUserNote.for_users(@report&.users || [])
     @users = sort_users(filter_users(@report&.users || []))
     @audit_counts_by_user_id = audit_counts_for(@users)
+
+    respond_to do |format|
+      format.html
+      format.csv do
+        send_data users_csv(@users),
+          filename: "plex-users-#{Time.zone.today}.csv",
+          type: "text/csv"
+      end
+    end
   rescue Plex::ConfigurationError => error
     @configuration_error = error.message
   rescue ActiveRecord::ActiveRecordError => error
@@ -97,6 +108,27 @@ class UsersController < ApplicationController
       .where(plex_user_id: users.map { |user| user.id.to_s })
       .group(:plex_user_id)
       .count
+  end
+
+  def users_csv(users)
+    CSV.generate(headers: true) do |csv|
+      csv << [ "name", "username", "email", "status", "last_streamed_at", "last_streamed_title", "libraries", "library_count", "has_notes", "audit_events" ]
+      users.each do |user|
+        note = @notes_by_user_id[user.id.to_s]
+        csv << [
+          user.label,
+          user.username,
+          user.email,
+          user.pending ? "pending" : "accepted",
+          user.last_streamed_at.present? ? Time.zone.at(user.last_streamed_at.to_i).iso8601 : nil,
+          user.last_streamed_title,
+          user.libraries.map(&:title).to_sentence,
+          user.libraries.size,
+          note&.notes.present?,
+          @audit_counts_by_user_id.fetch(user.id.to_s, 0)
+        ]
+      end
+    end
   end
 
   def matches_search?(user)
