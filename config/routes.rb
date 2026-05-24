@@ -20,4 +20,5 @@ Rails.application.routes.draw do
   post "shares", to: "shares#create"
   patch "shares/:share_id", to: "shares#update", as: :share
   delete "shares/:share_id", to: "shares#destroy"
+  delete "invites/:invite_id", to: "shares#destroy_invite", as: :pending_invite
 end

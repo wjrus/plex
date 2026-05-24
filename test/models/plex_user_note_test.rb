@@ -26,6 +26,8 @@ class PlexUserNoteTest < ActiveSupport::TestCase
         last_streamed_title: nil,
         last_streamed_type: nil,
         invited_at: nil,
+        invite_friend: nil,
+        invite_server: nil,
         pending: false,
         all_libraries: false,
         library_count: 0,

@@ -70,6 +70,8 @@ class ShareSnapshot < ApplicationRecord
       last_streamed_title: attributes[:last_streamed_title],
       last_streamed_type: attributes[:last_streamed_type],
       invited_at: attributes[:invited_at],
+      invite_friend: attributes[:invite_friend],
+      invite_server: attributes[:invite_server],
       pending: attributes[:pending],
       all_libraries: attributes[:all_libraries],
       library_count: attributes[:library_count],

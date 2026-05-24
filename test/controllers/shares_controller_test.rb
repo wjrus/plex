@@ -3,7 +3,7 @@ require "test_helper"
 class SharesControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
 
-  FakeClient = Struct.new(:removed_share_id, :created_invite, :updated_share) do
+  FakeClient = Struct.new(:removed_share_id, :created_invite, :updated_share, :canceled_invite) do
     def create_shared_server(_machine_identifier, invited_email, library_section_ids, allow_sync: false)
       self.created_invite = {
         invited_email: invited_email,
@@ -20,6 +20,15 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
       self.updated_share = {
         shared_server_id: shared_server_id,
         library_section_ids: library_section_ids
+      }
+    end
+
+    def cancel_requested_invite(invite_id, friend:, home:, server:)
+      self.canceled_invite = {
+        invite_id: invite_id,
+        friend: friend,
+        home: home,
+        server: server
       }
     end
 
@@ -164,6 +173,40 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "Theatre" ], log.libraries_added
     assert_equal [ "Movies" ], log.libraries_removed
     assert_equal [ "Theatre" ], log.libraries_after
+  end
+
+  test "admin can cancel pending invite" do
+    ShareSnapshot.create!(
+      machine_identifier: "machine-one",
+      server: { name: "Local Plex" },
+      libraries: [ { id: "1", key: "1", title: "Movies", type: "movie" } ],
+      users: [
+        {
+          id: "invite-one",
+          title: "Pending User",
+          username: "pending",
+          email: "pending@example.com",
+          home: false,
+          invite_friend: false,
+          invite_server: true,
+          pending: true,
+          all_libraries: true,
+          library_count: 1,
+          libraries: [ { id: "1", key: "1", title: "Movies", type: "movie" } ]
+        }
+      ],
+      fetched_at: Time.current
+    )
+
+    client = FakeClient.new
+    with_plex_client(client) { delete pending_invite_path("invite-one") }
+
+    assert_redirected_to root_path
+    assert_equal({ invite_id: "invite-one", friend: false, home: false, server: true }, client.canceled_invite)
+    assert_empty ShareSnapshot.latest_for("machine-one").users
+    log = ShareAuditLog.recent.first
+    assert_equal "pending_invite_canceled", log.action
+    assert_equal "Pending User", log.target_label
   end
 
   private

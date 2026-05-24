@@ -5,6 +5,7 @@ class ShareAuditLog < ApplicationRecord
     libraries_added
     libraries_removed
     libraries_changed
+    pending_invite_canceled
   ].freeze
 
   validates :action, inclusion: { in: ACTIONS }
@@ -37,6 +38,8 @@ class ShareAuditLog < ApplicationRecord
       "added #{libraries_added.to_sentence} to #{target_name}"
     when "libraries_removed"
       "removed #{libraries_removed.to_sentence} from #{target_name}"
+    when "pending_invite_canceled"
+      "canceled pending invite for #{target_name}"
     else
       "changed library access for #{target_name}"
     end
@@ -54,6 +57,8 @@ class ShareAuditLog < ApplicationRecord
         ("Removed: #{libraries_removed.to_sentence}" if libraries_removed.present?),
         ("Now shared: #{libraries_after.to_sentence}" if libraries_after.present?)
       ].compact.join(" · ")
+    when "pending_invite_canceled"
+      "Pending invite was canceled before acceptance"
     else
       ("Now shared: #{libraries_after.to_sentence}" if libraries_after.present?)
     end

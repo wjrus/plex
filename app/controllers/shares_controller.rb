@@ -103,6 +103,30 @@ class SharesController < ApplicationController
     redirect_to root_path, alert: error.message
   end
 
+  def destroy_invite
+    snapshot = ShareSnapshot.latest_for(required_machine_identifier)
+    pending_user = snapshot_user_for_id(snapshot, params[:invite_id])
+    raise Plex::ConfigurationError, "Pending invite not found in the latest snapshot." unless pending_user&.fetch("pending", false)
+
+    Plex::Client.from_env.cancel_requested_invite(
+      params[:invite_id],
+      friend: pending_user["invite_friend"],
+      home: pending_user["home"],
+      server: pending_user.fetch("invite_server", true)
+    )
+    update_cached_invite(params[:invite_id])
+    ShareAuditLog.record!(
+      action: "pending_invite_canceled",
+      admin_email: current_admin_email,
+      target: audit_target(pending_user),
+      libraries_removed: current_user_libraries(pending_user)
+    )
+
+    redirect_to root_path, notice: "Pending Plex invite canceled."
+  rescue Plex::ConfigurationError, Plex::Client::Error, ActiveRecord::ActiveRecordError => error
+    redirect_to root_path, alert: error.message
+  end
+
   private
 
   def refresh_snapshot(include_history: true)
@@ -144,12 +168,29 @@ class SharesController < ApplicationController
     )
   end
 
+  def update_cached_invite(invite_id)
+    snapshot = ShareSnapshot.latest_for(required_machine_identifier)
+    return refresh_snapshot(include_history: false) unless snapshot
+
+    ShareSnapshot.create!(
+      machine_identifier: snapshot.machine_identifier,
+      server: snapshot.server,
+      libraries: snapshot.libraries,
+      users: snapshot.users.reject { |user| user["id"].to_s == invite_id.to_s && user["pending"] },
+      fetched_at: Time.current
+    )
+  end
+
   def truthy_param?(value)
     value == true || value.to_s == "1" || value.to_s.casecmp("true").zero?
   end
 
   def snapshot_user_for_share(snapshot, share_id)
     snapshot&.users&.find { |user| user["share_id"].to_s == share_id.to_s }
+  end
+
+  def snapshot_user_for_id(snapshot, user_id)
+    snapshot&.users&.find { |user| user["id"].to_s == user_id.to_s }
   end
 
   def current_user_libraries(user)

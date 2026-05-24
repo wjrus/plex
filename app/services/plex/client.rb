@@ -52,6 +52,18 @@ module Plex
       media_container(fetch("/api/invites/requested"))[:invites]
     end
 
+    def cancel_requested_invite(invite_id, friend:, home:, server:)
+      request(
+        "/api/invites/requested/#{invite_id}",
+        method: :delete,
+        params: {
+          friend: truthy_value(friend),
+          home: truthy_value(home),
+          server: truthy_value(server)
+        }
+      )
+    end
+
     def playback_history(account_id: nil, size: 100, offset: 0)
       return [] unless server_base_url.present?
 
@@ -160,6 +172,10 @@ module Plex
         put: Net::HTTP::Put,
         delete: Net::HTTP::Delete
       }.fetch(method)
+    end
+
+    def truthy_value(value)
+      value == true || value.to_s == "1" || value.to_s.casecmp("true").zero? ? 1 : 0
     end
 
     def media_container(body)

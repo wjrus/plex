@@ -47,6 +47,9 @@
           <div><dt class="inline text-zinc-500">User ID:</dt> <dd class="inline"><%= @user.id %></dd></div>
           <div><dt class="inline text-zinc-500">Share ID:</dt> <dd class="inline"><%= @user.share_id.presence || "unknown" %></dd></div>
           <div><dt class="inline text-zinc-500">Invitation:</dt> <dd class="inline"><%= @user.pending ? "Pending" : "Accepted" %></dd></div>
+          <% if @user.pending && @user.invited_at.present? %>
+            <div><dt class="inline text-zinc-500">Invited:</dt> <dd class="inline"><%= optional_plex_timestamp(@user.invited_at) %></dd></div>
+          <% end %>
           <div><dt class="inline text-zinc-500">Last streamed:</dt> <dd class="inline"><%= optional_plex_timestamp(@user.last_streamed_at) %></dd></div>
           <% if @user.last_streamed_title.present? %>
             <div><dt class="inline text-zinc-500">Last title:</dt> <dd class="inline"><%= @user.last_streamed_title %></dd></div>
