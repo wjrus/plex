@@ -1,5 +1,5 @@
 class UsersController < ApplicationController
-  SORT_COLUMNS = %w[name username last_streamed].freeze
+  SORT_COLUMNS = %w[name last_streamed].freeze
   SORT_DIRECTIONS = %w[asc desc].freeze
 
   def index
@@ -8,6 +8,7 @@ class UsersController < ApplicationController
     @sort = params[:sort].presence_in(SORT_COLUMNS) || "name"
     @direction = params[:direction].presence_in(SORT_DIRECTIONS) || default_direction_for(@sort)
     @users = sort_users(@snapshot ? @snapshot.to_report.users : [])
+    @notes_by_user_id = PlexUserNote.for_users(@users)
   rescue Plex::ConfigurationError => error
     @configuration_error = error.message
   rescue ActiveRecord::ActiveRecordError => error
@@ -46,8 +47,6 @@ class UsersController < ApplicationController
 
   def sort_key_for(user)
     case @sort
-    when "username"
-      [ user.username.to_s.downcase, user.label.downcase ]
     when "last_streamed"
       [
         user.last_streamed_at.present? ? 0 : 1,

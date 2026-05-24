@@ -121,6 +121,23 @@
               <tr class="align-top">
                 <td class="min-w-72 px-4 py-4">
                   <div class="flex items-center gap-3">
+                    <% if user.share_id.present? %>
+                      <%= button_to "x",
+                        share_path(user.share_id),
+                        method: :delete,
+                        form: {
+                          data: {
+                            action: "submit->confirmation#confirmSubmit",
+                            confirm_title: "Remove #{user.label}?",
+                            confirm_body: "This will revoke #{user.label}'s access to all libraries on this Plex server.",
+                            confirm_button: "Remove user"
+                          }
+                        },
+                        aria: { label: "Remove #{user.label} from all libraries" },
+                        class: "inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-red-500/40 text-sm font-semibold leading-none text-red-100 transition hover:bg-red-950 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+                    <% else %>
+                      <span class="size-7 shrink-0" aria-hidden="true"></span>
+                    <% end %>
                     <% if user.thumb.present? %>
                       <img src="<%= user.thumb %>" alt="" class="size-10 rounded-md bg-zinc-800 object-cover">
                     <% else %>
@@ -220,19 +237,6 @@
                           <button type="submit" class="inline-flex items-center justify-center rounded-md bg-cyan-300 px-3 py-2 text-xs font-semibold text-zinc-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-zinc-950">Save libraries</button>
                         </div>
                       <% end %>
-                      <%= button_to "Remove share",
-                        share_path(user.share_id),
-                        method: :delete,
-                        form: {
-                          class: "mt-2",
-                          data: {
-                            action: "submit->confirmation#confirmSubmit",
-                            confirm_title: "Remove #{user.label}?",
-                            confirm_body: "This will revoke #{user.label}'s access to this Plex server.",
-                            confirm_button: "Remove share"
-                          }
-                        },
-                        class: "inline-flex items-center justify-center rounded-md border border-red-500/40 px-3 py-2 text-xs font-semibold text-red-100 transition hover:bg-red-950 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
                     </details>
                   <% else %>
                     <% if user.pending %>
