@@ -235,6 +235,27 @@ html.theme-applying *::after {
   outline-offset: -2px;
 }
 
+.danger-panel {
+  background-color: color-mix(in srgb, var(--theme-danger) 12%, var(--theme-panel));
+  border-color: color-mix(in srgb, var(--theme-danger) 42%, var(--theme-border));
+  color: var(--theme-danger);
+}
+
+.danger-panel p {
+  color: color-mix(in srgb, var(--theme-danger) 78%, var(--theme-muted));
+}
+
+.danger-button {
+  border-color: color-mix(in srgb, var(--theme-danger) 48%, var(--theme-border));
+  color: var(--theme-danger);
+}
+
+.danger-button:hover {
+  background-color: var(--theme-danger);
+  border-color: var(--theme-danger);
+  color: var(--theme-accent-ink);
+}
+
 html[data-theme] :is(.bg-zinc-950, .bg-zinc-900, .bg-zinc-900\/80) {
   background-color: var(--theme-panel) !important;
 }

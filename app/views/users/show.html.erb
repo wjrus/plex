@@ -147,9 +147,9 @@
         </section>
 
         <% if @user.share_id.present? %>
-          <section class="rounded-lg border border-red-500/30 bg-red-950/20 p-5">
-            <h2 class="text-lg font-semibold text-red-100">Remove Access</h2>
-            <p class="mt-2 text-sm leading-6 text-red-100/70">Revoke this user's access to every library on this Plex server.</p>
+          <section class="danger-panel rounded-lg border p-5">
+            <h2 class="text-lg font-semibold">Remove Access</h2>
+            <p class="mt-2 text-sm leading-6">Revoke this user's access to every library on this Plex server.</p>
             <%= button_to "Remove user from Plex shares",
               share_path(@user.share_id),
               method: :delete,
@@ -162,7 +162,7 @@
                   confirm_button: "Remove user"
                 }
               },
-              class: "inline-flex items-center justify-center rounded-md border border-red-500/40 px-4 py-2 text-sm font-semibold text-red-100 transition hover:bg-red-950 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+              class: "danger-button inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
           </section>
         <% end %>
       </aside>
