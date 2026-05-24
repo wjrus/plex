@@ -18,6 +18,26 @@ class SharesController < ApplicationController
     redirect_to root_path, alert: error.message
   end
 
+  def create
+    invited_email = params[:invited_email].to_s.strip
+    library_ids = Array(params[:library_ids]).compact_blank
+    raise Plex::ConfigurationError, "Enter a Plex username or email." if invited_email.blank?
+    raise Plex::ConfigurationError, "Choose at least one library to share." if library_ids.empty?
+
+    client = Plex::Client.from_env
+    client.create_shared_server(
+      required_machine_identifier,
+      invited_email,
+      library_ids,
+      allow_sync: truthy_param?(params[:allow_sync])
+    )
+    refresh_snapshot(include_history: false)
+
+    redirect_to root_path, notice: "Plex invite sent."
+  rescue Plex::ConfigurationError, Plex::Client::Error, ActiveRecord::ActiveRecordError => error
+    redirect_to root_path, alert: error.message
+  end
+
   def update
     library_ids = Array(params[:library_ids]).compact_blank
     client = Plex::Client.from_env
@@ -83,5 +103,9 @@ class SharesController < ApplicationController
       users: users,
       fetched_at: Time.current
     )
+  end
+
+  def truthy_param?(value)
+    value == true || value.to_s == "1" || value.to_s.casecmp("true").zero?
   end
 end

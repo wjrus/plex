@@ -72,6 +72,24 @@ module Plex
       )
     end
 
+    def create_shared_server(machine_identifier, invited_email, library_section_ids, allow_sync: false, allow_channels: false)
+      request_json(
+        "/api/servers/#{machine_identifier}/shared_servers",
+        method: :post,
+        payload: {
+          server_id: machine_identifier,
+          shared_server: {
+            library_section_ids: library_section_ids,
+            invited_email: invited_email
+          },
+          sharing_settings: {
+            allowSync: allow_sync ? "1" : "0",
+            allowChannels: allow_channels ? "1" : "0"
+          }
+        }
+      )
+    end
+
     def remove_shared_server(machine_identifier, shared_server_id)
       request_json(
         "/api/servers/#{machine_identifier}/shared_servers/#{shared_server_id}",
