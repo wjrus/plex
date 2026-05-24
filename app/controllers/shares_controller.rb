@@ -83,6 +83,24 @@ class SharesController < ApplicationController
     redirect_to root_path, alert: error.message
   end
 
+  def bulk_update
+    user_ids = Array(params[:user_ids]).compact_blank
+    library_id = params[:library_id].to_s
+    operation = params[:operation].to_s
+    raise Plex::ConfigurationError, "Select at least one user." if user_ids.empty?
+    raise Plex::ConfigurationError, "Choose a library." if library_id.blank?
+    raise Plex::ConfigurationError, "Choose add or remove." unless operation.in?(%w[add remove])
+
+    snapshot = ShareSnapshot.latest_for(required_machine_identifier)
+    library = libraries_for_ids(snapshot, [ library_id ]).first
+    raise Plex::ConfigurationError, "Library not found in the latest snapshot." unless library
+
+    changed_count = apply_bulk_library_update(snapshot, user_ids, library, operation)
+    redirect_to users_path, notice: "Updated #{helpers.pluralize(changed_count, "share")}."
+  rescue Plex::ConfigurationError, Plex::Client::Error, ActiveRecord::ActiveRecordError => error
+    redirect_to users_path, alert: error.message
+  end
+
   def destroy
     snapshot = ShareSnapshot.latest_for(required_machine_identifier)
     current_user = snapshot_user_for_share(snapshot, params[:share_id])
@@ -183,6 +201,42 @@ class SharesController < ApplicationController
 
   def truthy_param?(value)
     value == true || value.to_s == "1" || value.to_s.casecmp("true").zero?
+  end
+
+  def apply_bulk_library_update(snapshot, user_ids, library, operation)
+    client = Plex::Client.from_env
+    changed_count = 0
+
+    snapshot.users.select { |user| user_ids.include?(user["id"].to_s) }.each do |user|
+      next if user["pending"] || user["share_id"].blank?
+
+      previous_libraries = current_user_libraries(user)
+      selected_libraries = bulk_selected_libraries(previous_libraries, library, operation)
+      next if same_library_ids?(previous_libraries, selected_libraries)
+
+      if selected_libraries.any?
+        client.update_shared_server(required_machine_identifier, user["share_id"], selected_libraries.map { |selected| selected["id"].to_s })
+      else
+        client.remove_shared_server(required_machine_identifier, user["share_id"])
+      end
+      update_cached_share(user["share_id"], selected_libraries.map { |selected| selected["id"].to_s })
+      record_share_update(user["share_id"], user, previous_libraries, selected_libraries)
+      changed_count += 1
+    end
+
+    changed_count
+  end
+
+  def bulk_selected_libraries(previous_libraries, library, operation)
+    if operation == "add"
+      (previous_libraries + [ library ]).uniq { |selected| selected["id"].to_s }
+    else
+      previous_libraries.reject { |selected| selected["id"].to_s == library["id"].to_s }
+    end
+  end
+
+  def same_library_ids?(previous_libraries, selected_libraries)
+    previous_libraries.map { |library| library["id"].to_s }.sort == selected_libraries.map { |library| library["id"].to_s }.sort
   end
 
   def snapshot_user_for_share(snapshot, share_id)

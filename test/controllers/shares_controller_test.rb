@@ -175,6 +175,42 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "Theatre" ], log.libraries_after
   end
 
+  test "admin can bulk add a library" do
+    ShareSnapshot.create!(
+      machine_identifier: "machine-one",
+      server: { name: "Local Plex" },
+      libraries: [
+        { id: "1", key: "1", title: "Movies", type: "movie" },
+        { id: "2", key: "2", title: "Theatre", type: "movie" }
+      ],
+      users: [
+        {
+          id: "42",
+          share_id: "99",
+          title: "Viewer",
+          username: "viewer",
+          email: "viewer@example.com",
+          pending: false,
+          libraries: [ { id: "1", key: "1", title: "Movies", type: "movie" } ],
+          library_count: 1,
+          all_libraries: false
+        }
+      ],
+      fetched_at: Time.current
+    )
+
+    client = FakeClient.new
+    with_plex_client(client) do
+      post bulk_shares_path, params: { user_ids: [ "42" ], library_id: "2", operation: "add" }
+    end
+
+    assert_redirected_to users_path
+    assert_equal({ shared_server_id: "99", library_section_ids: [ "1", "2" ] }, client.updated_share)
+    log = ShareAuditLog.recent.first
+    assert_equal "libraries_added", log.action
+    assert_equal [ "Theatre" ], log.libraries_added
+  end
+
   test "admin can cancel pending invite" do
     ShareSnapshot.create!(
       machine_identifier: "machine-one",
