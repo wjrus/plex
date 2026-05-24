@@ -16,6 +16,10 @@
   --theme-accent-ink: #ffffff;
   --theme-danger: #be123c;
   --theme-warning: #92400e;
+  --theme-success-bg: #dff7ea;
+  --theme-success-border: #2f9e65;
+  --theme-success-text: #14532d;
+  --theme-note-bg: #f7f7f4;
   --theme-shadow: 0 16px 40px rgba(9, 9, 11, 0.12);
   --theme-focus: #0f766e;
   --theme-font: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -37,6 +41,10 @@
   --theme-accent-ink: #001412;
   --theme-danger: #fb7185;
   --theme-warning: #fbbf24;
+  --theme-success-bg: rgba(52, 211, 153, 0.12);
+  --theme-success-border: rgba(52, 211, 153, 0.42);
+  --theme-success-text: #bbf7d0;
+  --theme-note-bg: rgba(24, 24, 27, 0.7);
   --theme-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
   --theme-focus: #5eead4;
 }
@@ -57,6 +65,10 @@
   --theme-accent-ink: #fffdf6;
   --theme-danger: #a83f3f;
   --theme-warning: #7c4a12;
+  --theme-success-bg: #e4f2dc;
+  --theme-success-border: #5d8f50;
+  --theme-success-text: #274e28;
+  --theme-note-bg: #f6efe0;
   --theme-shadow: 0 16px 40px rgba(31, 39, 49, 0.1);
   --theme-focus: #2d6c68;
 }
@@ -77,6 +89,10 @@
   --theme-accent-ink: #001b09;
   --theme-danger: #ff6b6b;
   --theme-warning: #d7ff7a;
+  --theme-success-bg: rgba(57, 255, 136, 0.12);
+  --theme-success-border: #39ff88;
+  --theme-success-text: #39ff88;
+  --theme-note-bg: #071307;
   --theme-shadow: 0 16px 40px rgba(57, 255, 136, 0.12);
   --theme-focus: #39ff88;
   --theme-font: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
@@ -98,6 +114,10 @@
   --theme-accent-ink: #1a0d02;
   --theme-danger: #ff8f7a;
   --theme-warning: #ffd27a;
+  --theme-success-bg: rgba(255, 210, 122, 0.14);
+  --theme-success-border: #ffd27a;
+  --theme-success-text: #ffd27a;
+  --theme-note-bg: #261504;
   --theme-shadow: 0 16px 40px rgba(255, 210, 122, 0.11);
   --theme-focus: #ffd27a;
   --theme-font: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
@@ -159,6 +179,10 @@ html[data-theme] :is(.bg-zinc-950, .bg-zinc-900, .bg-zinc-900\/80) {
   background-color: var(--theme-panel) !important;
 }
 
+html[data-theme] .bg-zinc-900\/70 {
+  background-color: var(--theme-note-bg) !important;
+}
+
 html[data-theme] :is(body.bg-zinc-950, main, .min-h-screen) {
   background-color: var(--theme-bg) !important;
 }
@@ -177,6 +201,18 @@ html[data-theme] :is(.text-white, .text-zinc-100, .text-zinc-200, .text-zinc-300
 
 html[data-theme] :is(.text-zinc-400, .text-zinc-500) {
   color: var(--theme-muted) !important;
+}
+
+html[data-theme] :is(.border-emerald-400\/30) {
+  border-color: var(--theme-success-border) !important;
+}
+
+html[data-theme] :is(.bg-emerald-400\/10) {
+  background-color: var(--theme-success-bg) !important;
+}
+
+html[data-theme] :is(.text-emerald-200) {
+  color: var(--theme-success-text) !important;
 }
 
 html[data-theme] .text-cyan-300 {
