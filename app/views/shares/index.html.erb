@@ -10,10 +10,8 @@
       </p>
     </div>
 
-    <div class="flex flex-wrap gap-2">
-      <%= link_to "Log", share_audit_logs_path, class: "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
-      <%= link_to "Status", status_path, class: "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
-      <%= link_to "Users", users_path, class: "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+    <div class="flex flex-col gap-2 lg:items-end">
+      <%= render "shared/page_nav" %>
       <% unless @configuration_error.present? %>
         <%= button_to @active_refresh_run ? "Refresh running" : "Refresh from Plex",
           refresh_shares_path,
@@ -21,7 +19,6 @@
           data: { turbo: false },
           class: "inline-flex items-center justify-center rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:opacity-50" %>
       <% end %>
-      <%= button_to "Sign out", sign_out_path, method: :delete, class: "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
     </div>
   </header>
 

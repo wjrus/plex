@@ -6,11 +6,7 @@
       <p class="text-sm font-medium uppercase tracking-wide text-cyan-300">Plex directory</p>
       <h1 class="mt-2 text-3xl font-semibold tracking-normal text-white">Users</h1>
     </div>
-    <div class="flex flex-wrap gap-2">
-      <%= link_to "Log", share_audit_logs_path, class: "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
-      <%= link_to "Status", status_path, class: "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
-      <%= link_to "Shares", root_path, class: "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
-    </div>
+    <%= render "shared/page_nav" %>
   </header>
 
   <% if @configuration_error.present? || @plex_error.present? %>

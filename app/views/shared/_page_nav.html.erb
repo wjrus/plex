@@ -1,0 +1,9 @@
+<% nav_link_class = "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+
+<nav class="flex flex-wrap gap-2" aria-label="Page navigation">
+  <%= link_to "Shares", root_path, class: nav_link_class %>
+  <%= link_to "Users", users_path, class: nav_link_class %>
+  <%= link_to "Log", share_audit_logs_path, class: nav_link_class %>
+  <%= link_to "Status", status_path, class: nav_link_class %>
+  <%= button_to "Sign out", sign_out_path, method: :delete, class: nav_link_class %>
+</nav>
