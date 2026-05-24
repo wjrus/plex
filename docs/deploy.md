@@ -13,16 +13,10 @@ It runs:
 
 The host port defaults to `3010`, bound on all host interfaces so a separate
 Nginx Proxy Manager container/host can reach it. Your reverse proxy can forward
-`plexadmin.wjr.us` to:
+`plexadmin.example.com` to:
 
 ```text
 http://<docker-host-ip>:3010
-```
-
-For your photos server that is likely:
-
-```text
-http://192.168.1.156:3010
 ```
 
 ## First Setup
@@ -60,20 +54,20 @@ PLEX_DATABASE_PASSWORD=...
 Fill in the remaining `.env.production` values:
 
 ```sh
-PLEX_HOST=plexadmin.wjr.us
-PLEX_HOSTS=plexadmin.wjr.us
-ADMIN_USERS=wjr@wjr.us
+PLEX_HOST=plexadmin.example.com
+PLEX_HOSTS=plexadmin.example.com
+ADMIN_USERS=admin@example.com
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 PLEX_TOKEN=...
 PLEX_MACHINE_IDENTIFIER=...
-PLEX_SERVER_BASE_URL=http://plex.wjr.us:32400
+PLEX_SERVER_BASE_URL=http://plex.example.com:32400
 ```
 
 Google OAuth redirect URI:
 
 ```text
-https://plexadmin.wjr.us/auth/google_oauth2/callback
+https://plexadmin.example.com/auth/google_oauth2/callback
 ```
 
 Deploy:
@@ -91,7 +85,7 @@ Follow logs:
 
 ## Nginx Reverse Proxy
 
-Use a vhost for `plexadmin.wjr.us` that terminates TLS and proxies to the local
+Use a vhost for `plexadmin.example.com` that terminates TLS and proxies to the local
 Compose port.
 
 Plain nginx example:
@@ -99,7 +93,7 @@ Plain nginx example:
 ```nginx
 server {
   listen 443 ssl http2;
-  server_name plexadmin.wjr.us;
+  server_name plexadmin.example.com;
 
   location / {
     proxy_pass http://127.0.0.1:3010;
@@ -137,7 +131,7 @@ production primary database. It does not copy secrets; those stay in
 On your development machine:
 
 ```sh
-cd /Users/wjr/dev/plex
+cd /path/to/plex
 mkdir -p tmp
 pg_dump --format=custom --no-owner --no-acl --file=tmp/plex_development.dump plex_development
 scp tmp/plex_development.dump <server>:/apps/plex/tmp/plex_development.dump
@@ -167,7 +161,7 @@ Verify:
 
 ```sh
 docker compose exec web ./bin/rails runner 'puts ShareSnapshot.count; puts PlexUserNote.count'
-curl -fsSI -H 'Host: plexadmin.wjr.us' http://127.0.0.1:3010/up
+curl -fsSI -H 'Host: plexadmin.example.com' http://127.0.0.1:3010/up
 ```
 
 ## Useful Commands

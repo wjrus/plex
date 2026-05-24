@@ -58,7 +58,7 @@ Rails.application.configure do
   # config.action_mailer.raise_delivery_errors = false
 
   # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: ENV.fetch("PLEX_HOST", "plexadmin.wjr.us") }
+  config.action_mailer.default_url_options = { host: ENV.fetch("PLEX_HOST", "plexadmin.example.com") }
 
   # Specify outgoing SMTP server. Remember to add smtp/* credentials via bin/rails credentials:edit.
   # config.action_mailer.smtp_settings = {
@@ -80,7 +80,7 @@ Rails.application.configure do
   config.active_record.attributes_for_inspect = [ :id ]
 
   # Enable DNS rebinding protection and other `Host` header attacks.
-  ENV.fetch("PLEX_HOSTS", ENV.fetch("PLEX_HOST", "plexadmin.wjr.us")).split(",").each do |host|
+  ENV.fetch("PLEX_HOSTS", ENV.fetch("PLEX_HOST", "plexadmin.example.com")).split(",").each do |host|
     config.hosts << host.strip if host.strip.present?
   end
   #

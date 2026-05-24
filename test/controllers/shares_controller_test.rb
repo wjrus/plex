@@ -53,7 +53,7 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     @original_admin_users = ENV["ADMIN_USERS"]
     @original_admin_user = ENV["ADMIN_USER"]
     ENV["PLEX_MACHINE_IDENTIFIER"] = "machine-one"
-    ENV["ADMIN_USERS"] = "wjr@wjr.us"
+    ENV["ADMIN_USERS"] = "admin@example.com"
     ENV.delete("ADMIN_USER")
     OmniAuth.config.test_mode = true
     sign_in
@@ -85,7 +85,7 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
     refresh_run = RefreshRun.latest_for("machine-one")
     assert_equal "queued", refresh_run.status
-    assert_equal "wjr@wjr.us", refresh_run.admin_email
+    assert_equal "admin@example.com", refresh_run.admin_email
     assert_not refresh_run.include_history
   end
 
@@ -120,7 +120,7 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     )
     log = ShareAuditLog.recent.first
     assert_equal "library_access_granted", log.action
-    assert_equal "wjr@wjr.us", log.admin_email
+    assert_equal "admin@example.com", log.admin_email
     assert_equal "friend@example.com", log.target_label
     assert_equal [ "Movies" ], log.libraries_after
   end
@@ -259,8 +259,8 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
       provider: "google_oauth2",
       info: {
-        email: "wjr@wjr.us",
-        name: "WJR"
+        email: "admin@example.com",
+        name: "Admin User"
       }
     )
 

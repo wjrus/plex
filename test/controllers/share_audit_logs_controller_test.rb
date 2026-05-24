@@ -4,7 +4,7 @@ class ShareAuditLogsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @original_admin_users = ENV["ADMIN_USERS"]
     @original_admin_user = ENV["ADMIN_USER"]
-    ENV["ADMIN_USERS"] = "wjr@wjr.us"
+    ENV["ADMIN_USERS"] = "admin@example.com"
     ENV.delete("ADMIN_USER")
     OmniAuth.config.test_mode = true
     sign_in
@@ -22,7 +22,7 @@ class ShareAuditLogsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", "Log"
-    assert_select "td", text: "wjr@wjr.us"
+    assert_select "td", text: "admin@example.com"
     assert_select "td", text: /added Movies to Viewer/
   end
 
@@ -48,8 +48,8 @@ class ShareAuditLogsControllerTest < ActionDispatch::IntegrationTest
     OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
       provider: "google_oauth2",
       info: {
-        email: "wjr@wjr.us",
-        name: "WJR"
+        email: "admin@example.com",
+        name: "Admin User"
       }
     )
 

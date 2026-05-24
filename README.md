@@ -22,7 +22,7 @@ Put these values in `.env`:
 ```sh
 PLEX_TOKEN=
 PLEX_MACHINE_IDENTIFIER=
-ADMIN_USERS=wjr@wjr.us,another-admin@example.com
+ADMIN_USERS=admin@example.com,another-admin@example.com
 ```
 
 `PLEX_TOKEN` is your Plex account token. One practical way to find it:
@@ -96,5 +96,5 @@ bin/rubocop
 
 ## Deployment
 
-See [docs/deploy.md](/Users/wjr/dev/plex/docs/deploy.md) for Docker Compose,
+See [docs/deploy.md](docs/deploy.md) for Docker Compose,
 nginx reverse proxy, and development-to-production Postgres import steps.

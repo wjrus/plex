@@ -4,7 +4,7 @@ class StatusControllerTest < ActionDispatch::IntegrationTest
   setup do
     @original_admin_users = ENV["ADMIN_USERS"]
     @original_admin_user = ENV["ADMIN_USER"]
-    ENV["ADMIN_USERS"] = "wjr@wjr.us"
+    ENV["ADMIN_USERS"] = "admin@example.com"
     ENV.delete("ADMIN_USER")
     OmniAuth.config.test_mode = true
     sign_in
@@ -31,8 +31,8 @@ class StatusControllerTest < ActionDispatch::IntegrationTest
     OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
       provider: "google_oauth2",
       info: {
-        email: "wjr@wjr.us",
-        name: "WJR"
+        email: "admin@example.com",
+        name: "Admin User"
       }
     )
 

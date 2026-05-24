@@ -5,7 +5,7 @@ one:
   username: viewer
   email: viewer@example.com
   notes: Existing local note
-  last_edited_by: wjr@wjr.us
+  last_edited_by: admin@example.com
 
 two:
   plex_user_id: "99"

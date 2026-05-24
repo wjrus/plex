@@ -2,7 +2,7 @@
 
 one:
   action: libraries_added
-  admin_email: wjr@wjr.us
+  admin_email: admin@example.com
   plex_user_id: "42"
   share_id: "99"
   target_label: Viewer
