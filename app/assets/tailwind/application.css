@@ -288,11 +288,15 @@ html[data-theme] :is(.border-emerald-400\/30) {
   border-color: var(--theme-success-border) !important;
 }
 
-html[data-theme] :is(.bg-emerald-400\/10) {
+html[data-theme] :is(.border-emerald-500\/40) {
+  border-color: var(--theme-success-border) !important;
+}
+
+html[data-theme] :is(.bg-emerald-400\/10, .bg-emerald-950) {
   background-color: var(--theme-success-bg) !important;
 }
 
-html[data-theme] :is(.text-emerald-200) {
+html[data-theme] :is(.text-emerald-100, .text-emerald-200) {
   color: var(--theme-success-text) !important;
 }
 
@@ -300,12 +304,51 @@ html[data-theme] :is(.border-amber-400\/30) {
   border-color: var(--theme-warning-border) !important;
 }
 
-html[data-theme] :is(.bg-amber-400\/10) {
+html[data-theme] :is(.border-amber-500\/40) {
+  border-color: var(--theme-warning-border) !important;
+}
+
+html[data-theme] :is(.bg-amber-400\/10, .bg-amber-950\/40) {
   background-color: var(--theme-warning-bg) !important;
 }
 
-html[data-theme] :is(.text-amber-200) {
+html[data-theme] :is(.text-amber-50\/80, .text-amber-100, .text-amber-200) {
   color: var(--theme-warning-text) !important;
+}
+
+html[data-theme] :is(.border-red-500\/30, .border-red-500\/40) {
+  border-color: color-mix(in srgb, var(--theme-danger) 48%, var(--theme-border)) !important;
+}
+
+html[data-theme] :is(.bg-red-950, .bg-red-950\/20, .bg-red-950\/40) {
+  background-color: color-mix(in srgb, var(--theme-danger) 12%, var(--theme-panel)) !important;
+}
+
+html[data-theme] :is(.text-red-50\/80, .text-red-100) {
+  color: var(--theme-danger) !important;
+}
+
+html[data-theme] :is(.bg-red-300) {
+  background-color: var(--theme-danger) !important;
+  color: var(--theme-accent-ink) !important;
+}
+
+html[data-theme] :is(.hover\:bg-red-100:hover, .hover\:bg-red-950:hover) {
+  background-color: var(--theme-danger) !important;
+  border-color: var(--theme-danger) !important;
+  color: var(--theme-accent-ink) !important;
+}
+
+html[data-theme] :is(.border-cyan-300\/30) {
+  border-color: color-mix(in srgb, var(--theme-accent) 42%, var(--theme-border)) !important;
+}
+
+html[data-theme] :is(.bg-cyan-300\/10) {
+  background-color: color-mix(in srgb, var(--theme-accent) 12%, var(--theme-panel)) !important;
+}
+
+html[data-theme] :is(.text-cyan-100) {
+  color: var(--theme-accent-label) !important;
 }
 
 html[data-theme] .text-cyan-300 {
