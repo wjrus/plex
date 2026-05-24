@@ -26,6 +26,22 @@ class ShareAuditLogsControllerTest < ActionDispatch::IntegrationTest
     assert_select "td", text: /added Movies to Viewer/
   end
 
+  test "filters audit log entries" do
+    get share_audit_logs_path(action_type: "libraries_added", q: "Viewer")
+
+    assert_response :success
+    assert_select "td", text: /added Movies to Viewer/
+  end
+
+  test "exports audit log csv" do
+    get share_audit_logs_path(format: :csv)
+
+    assert_response :success
+    assert_includes response.media_type, "text/csv"
+    assert_includes response.body, "created_at,admin_email,action"
+    assert_includes response.body, "libraries_added"
+  end
+
   private
 
   def sign_in

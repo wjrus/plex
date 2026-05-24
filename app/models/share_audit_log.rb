@@ -1,4 +1,6 @@
 class ShareAuditLog < ApplicationRecord
+  require "csv"
+
   ACTIONS = %w[
     library_access_granted
     library_access_removed
@@ -26,6 +28,25 @@ class ShareAuditLog < ApplicationRecord
       libraries_after: library_names(libraries_after),
       metadata: metadata.compact
     )
+  end
+
+  def self.to_csv(logs)
+    CSV.generate(headers: true) do |csv|
+      csv << [ "created_at", "admin_email", "action", "summary", "target", "target_email", "libraries_added", "libraries_removed", "libraries_after" ]
+      logs.limit(10_000).each do |entry|
+        csv << [
+          entry.created_at.iso8601,
+          entry.admin_email,
+          entry.action,
+          entry.summary,
+          entry.target_name,
+          entry.target_email,
+          entry.libraries_added.to_sentence,
+          entry.libraries_removed.to_sentence,
+          entry.libraries_after.to_sentence
+        ]
+      end
+    end
   end
 
   def summary
