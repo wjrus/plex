@@ -38,6 +38,17 @@ update_code() {
   git pull --ff-only
 }
 
+set_app_revision() {
+  if [[ -d .git ]]; then
+    APP_REVISION="$(git rev-parse --short HEAD)"
+  else
+    APP_REVISION="${APP_REVISION:-unknown}"
+  fi
+
+  export APP_REVISION
+  log "Using app revision ${APP_REVISION}"
+}
+
 env_value() {
   local key="$1"
   local file="$2"
@@ -125,6 +136,7 @@ fi
 require_file .env.production
 require_file .env.postgres
 update_code
+set_app_revision
 
 log "Building app image"
 compose build web

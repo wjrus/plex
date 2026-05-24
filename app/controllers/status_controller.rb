@@ -27,5 +27,7 @@ class StatusController < ApplicationController
     return unless Rails.root.join(".git").exist?
 
     `git rev-parse --short HEAD 2>/dev/null`.strip
+  rescue StandardError
+    nil
   end
 end

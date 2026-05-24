@@ -17,7 +17,10 @@ services:
       - ./docker/postgres/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/10-init-multiple-dbs.sh:ro
 
   web:
-    build: .
+    build:
+      context: .
+      args:
+        APP_REVISION: "${APP_REVISION:-unknown}"
     image: plex-admin:production
     restart: unless-stopped
     env_file:
