@@ -13,6 +13,7 @@ Rails.application.routes.draw do
 
   root "shares#index"
   get "log", to: "share_audit_logs#index", as: :share_audit_logs
+  get "status", to: "status#index", as: :status
   get "users", to: "users#index", as: :users
   get "users/:plex_user_id", to: "users#show", as: :user
   patch "users/:plex_user_id/note", to: "users#update_note", as: :user_note

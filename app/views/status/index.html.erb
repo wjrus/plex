@@ -1,0 +1,63 @@
+<% content_for :title, "Plex Status" %>
+
+<div class="mx-auto flex w-full max-w-[100rem] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+  <header class="flex flex-col gap-4 border-b border-zinc-800 pb-5 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="text-sm font-medium uppercase tracking-wide text-cyan-300">Plex admin</p>
+      <h1 class="mt-2 text-3xl font-semibold tracking-normal text-white">Status</h1>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <%= link_to "Log", share_audit_logs_path, class: "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+      <%= link_to "Users", users_path, class: "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+      <%= link_to "Shares", root_path, class: "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+    </div>
+  </header>
+
+  <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Revision</p>
+      <p class="mt-2 text-lg font-semibold text-white"><%= @app_revision %></p>
+    </div>
+    <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Database</p>
+      <p class="mt-2 text-lg font-semibold text-white"><%= @database_ok ? "Connected" : "Unavailable" %></p>
+    </div>
+    <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Latest Snapshot</p>
+      <p class="mt-2 text-lg font-semibold text-white"><%= @latest_snapshot ? l(@latest_snapshot.fetched_at, format: :short) : "None" %></p>
+    </div>
+    <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Latest Refresh</p>
+      <p class="mt-2 text-lg font-semibold text-white"><%= @latest_refresh&.label || "None" %></p>
+    </div>
+  </section>
+
+  <section class="grid gap-4 lg:grid-cols-2">
+    <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+      <h2 class="text-lg font-semibold text-white">Refresh</h2>
+      <% if @latest_refresh %>
+        <dl class="mt-4 grid gap-2 text-sm text-zinc-400">
+          <div><dt class="inline text-zinc-500">Queued by:</dt> <dd class="inline"><%= @latest_refresh.admin_email.presence || "unknown" %></dd></div>
+          <div><dt class="inline text-zinc-500">Message:</dt> <dd class="inline"><%= @latest_refresh.last_message.presence || "none" %></dd></div>
+          <div><dt class="inline text-zinc-500">Started:</dt> <dd class="inline"><%= @latest_refresh.started_at ? l(@latest_refresh.started_at, format: :long) : "not started" %></dd></div>
+          <div><dt class="inline text-zinc-500">Finished:</dt> <dd class="inline"><%= @latest_refresh.finished_at ? l(@latest_refresh.finished_at, format: :long) : "not finished" %></dd></div>
+          <div><dt class="inline text-zinc-500">History pages:</dt> <dd class="inline"><%= @latest_refresh.history_pages_retrieved %></dd></div>
+          <div><dt class="inline text-zinc-500">History rows:</dt> <dd class="inline"><%= number_with_delimiter(@latest_refresh.history_rows_retrieved) %></dd></div>
+        </dl>
+      <% else %>
+        <p class="mt-3 text-sm text-zinc-400">No refresh has been queued yet.</p>
+      <% end %>
+    </div>
+
+    <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+      <h2 class="text-lg font-semibold text-white">Last Audit Event</h2>
+      <% if @latest_audit_log %>
+        <p class="mt-4 text-sm font-medium text-white"><%= @latest_audit_log.summary %></p>
+        <p class="mt-2 text-sm text-zinc-400"><%= @latest_audit_log.admin_email %> · <%= l(@latest_audit_log.created_at, format: :long) %></p>
+        <p class="mt-2 text-sm text-zinc-500"><%= @latest_audit_log.details.presence || "No additional details" %></p>
+      <% else %>
+        <p class="mt-3 text-sm text-zinc-400">No audit events yet.</p>
+      <% end %>
+    </div>
+  </section>
+</div>
