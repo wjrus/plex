@@ -50,6 +50,10 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "td", text: "viewer@example.com"
+    assert_select "td", text: /Existing local note/
+    assert_select "textarea[name='plex_user_note[notes]']", count: 0
+    assert_select "button", text: "Apply to selected", count: 0
+    assert_select "input[name='user_ids[]']", count: 0
     assert_select "p", text: "1 user shown"
   end
 
