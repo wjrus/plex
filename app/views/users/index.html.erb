@@ -76,6 +76,7 @@
     </section>
   <% elsif @users.any? %>
     <section class="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">
+      <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-zinc-800 text-left text-sm">
         <thead class="bg-zinc-900/80 text-xs uppercase tracking-wide text-zinc-400">
           <tr>
@@ -135,6 +136,7 @@
           <% end %>
         </tbody>
       </table>
+      </div>
     </section>
   <% end %>
 </div>
