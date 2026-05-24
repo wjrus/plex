@@ -10,43 +10,8 @@
       </p>
     </div>
 
-    <div class="flex flex-col gap-2 lg:items-end">
-      <%= render "shared/page_nav" %>
-      <% unless @configuration_error.present? %>
-        <%= button_to @active_refresh_run ? "Refresh running" : "Refresh from Plex",
-          refresh_shares_path,
-          disabled: @active_refresh_run.present?,
-          data: { turbo: false },
-          class: "inline-flex items-center justify-center rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:opacity-50" %>
-      <% end %>
-    </div>
+    <%= render "shared/page_nav" %>
   </header>
-
-  <% if @refresh_run.present? %>
-    <section class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
-      <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Refresh status</p>
-          <p class="mt-2 text-lg font-semibold text-white"><%= @refresh_run.label %></p>
-          <p class="mt-1 text-sm text-zinc-400"><%= @refresh_run.last_message.presence || "Waiting for progress" %></p>
-          <% if @refresh_run.error_message.present? %>
-            <p class="mt-2 text-sm text-red-100"><%= @refresh_run.error_message %></p>
-          <% end %>
-        </div>
-        <dl class="grid gap-2 text-xs text-zinc-400 sm:grid-cols-2 lg:min-w-[32rem]">
-          <div><dt class="inline text-zinc-500">Queued by:</dt> <dd class="inline"><%= @refresh_run.admin_email.presence || "unknown" %></dd></div>
-          <div><dt class="inline text-zinc-500">Elapsed:</dt> <dd class="inline"><%= @refresh_run.elapsed_seconds ? distance_of_time_in_words(@refresh_run.elapsed_seconds) : "not started" %></dd></div>
-          <div><dt class="inline text-zinc-500">History pages:</dt> <dd class="inline"><%= @refresh_run.history_pages_retrieved %></dd></div>
-          <div><dt class="inline text-zinc-500">History rows:</dt> <dd class="inline"><%= number_with_delimiter(@refresh_run.history_rows_retrieved) %></dd></div>
-          <div><dt class="inline text-zinc-500">Users matched:</dt> <dd class="inline"><%= @refresh_run.history_users_matched %></dd></div>
-          <div><dt class="inline text-zinc-500">Users remaining:</dt> <dd class="inline"><%= @refresh_run.history_users_remaining %></dd></div>
-          <% if @refresh_run.account_lookups_total.positive? %>
-            <div class="sm:col-span-2"><dt class="inline text-zinc-500">Account lookups:</dt> <dd class="inline"><%= @refresh_run.account_lookups_completed %>/<%= @refresh_run.account_lookups_total %></dd></div>
-          <% end %>
-        </dl>
-      </div>
-    </section>
-  <% end %>
 
   <% if @configuration_error.present? %>
     <section class="rounded-lg border border-amber-500/40 bg-amber-950/40 p-5">

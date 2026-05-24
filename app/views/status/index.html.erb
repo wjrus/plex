@@ -30,7 +30,17 @@
 
   <section class="grid gap-4 lg:grid-cols-2">
     <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
-      <h2 class="text-lg font-semibold text-white">Refresh</h2>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-white">Refresh</h2>
+          <p class="mt-1 text-sm text-zinc-400">Daily auto-refresh runs in the background. Queue a manual Plex refresh here when needed.</p>
+        </div>
+        <%= button_to @active_refresh_run ? "Refresh running" : "Refresh from Plex",
+          refresh_shares_path,
+          disabled: @active_refresh_run.present?,
+          data: { turbo: false },
+          class: "inline-flex shrink-0 items-center justify-center rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:opacity-50" %>
+      </div>
       <% if @latest_refresh %>
         <dl class="mt-4 grid gap-2 text-sm text-zinc-400">
           <div><dt class="inline text-zinc-500">Queued by:</dt> <dd class="inline"><%= @latest_refresh.admin_email.presence || "unknown" %></dd></div>

@@ -29,6 +29,7 @@ class StatusControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", "Status"
     assert_select "p", text: "Database"
+    assert_select "form[action='#{refresh_shares_path}']"
   end
 
   test "renders revision from environment" do

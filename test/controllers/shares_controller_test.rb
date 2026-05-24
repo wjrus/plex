@@ -84,7 +84,7 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
       post refresh_shares_path
     end
 
-    assert_redirected_to root_path
+    assert_redirected_to status_path
     refresh_run = RefreshRun.latest_for("machine-one")
     assert_equal "queued", refresh_run.status
     assert_equal "admin@example.com", refresh_run.admin_email
@@ -98,7 +98,7 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
       post refresh_shares_path
     end
 
-    assert_redirected_to root_path
+    assert_redirected_to status_path
   end
 
   test "admin can invite a user to selected libraries" do

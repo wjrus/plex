@@ -4,6 +4,7 @@ class StatusController < ApplicationController
     @database_ok = database_ok?
     @latest_snapshot = @machine_identifier ? ShareSnapshot.latest_for(@machine_identifier) : ShareSnapshot.latest_first.first
     @latest_refresh = @machine_identifier ? RefreshRun.latest_for(@machine_identifier) : RefreshRun.latest_first.first
+    @active_refresh_run = @machine_identifier ? RefreshRun.active_for(@machine_identifier) : RefreshRun.active.first
     @latest_audit_log = ShareAuditLog.recent.first
     @app_revision = app_revision
   end
