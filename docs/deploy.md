@@ -11,11 +11,18 @@ It runs:
 - `web`: Rails/Puma/Thruster on container port `80`, bound to localhost only
 - `db`: PostgreSQL 18 with primary, cache, queue, and cable databases
 
-The host port defaults to `3010`, so your nginx reverse proxy can forward
+The host port defaults to `3010`, bound on all host interfaces so a separate
+Nginx Proxy Manager container/host can reach it. Your reverse proxy can forward
 `plexadmin.wjr.us` to:
 
 ```text
-http://127.0.0.1:3010
+http://<docker-host-ip>:3010
+```
+
+For your photos server that is likely:
+
+```text
+http://192.168.1.156:3010
 ```
 
 ## First Setup
@@ -113,6 +120,13 @@ PLEX_ADMIN_PORT=3011 ./scripts/deploy
 ```
 
 Then point nginx at `127.0.0.1:3011`.
+
+If nginx runs on the same host and you want to keep the app private to
+localhost only:
+
+```sh
+PLEX_ADMIN_BIND=127.0.0.1 ./scripts/deploy
+```
 
 ## Import Development Data
 
