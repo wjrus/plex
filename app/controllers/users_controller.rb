@@ -8,7 +8,6 @@ class UsersController < ApplicationController
     @sort = params[:sort].presence_in(SORT_COLUMNS) || "name"
     @direction = params[:direction].presence_in(SORT_DIRECTIONS) || default_direction_for(@sort)
     @users = sort_users(@snapshot ? @snapshot.to_report.users : [])
-    @notes_by_user_id = PlexUserNote.for_users(@users)
   rescue Plex::ConfigurationError => error
     @configuration_error = error.message
   rescue ActiveRecord::ActiveRecordError => error
@@ -20,7 +19,7 @@ class UsersController < ApplicationController
     note.assign_attributes(note_params.merge(last_edited_by: current_admin_email))
     note.save!
 
-    redirect_to users_path(sort: params[:sort], direction: params[:direction]), notice: "User note saved."
+    redirect_to note_redirect_path, notice: "User note saved."
   rescue ActiveRecord::ActiveRecordError => error
     redirect_to users_path, alert: error.message
   end
@@ -29,6 +28,10 @@ class UsersController < ApplicationController
 
   def note_params
     params.require(:plex_user_note).permit(:username, :email, :notes)
+  end
+
+  def note_redirect_path
+    url_from(params[:return_to]) || users_path(sort: params[:sort], direction: params[:direction])
   end
 
   def required_machine_identifier
