@@ -23,7 +23,19 @@
       <p class="mt-2 text-lg font-semibold text-white"><%= @latest_snapshot ? l(@latest_snapshot.fetched_at, format: :short) : "None" %></p>
     </div>
     <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-      <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Latest Refresh</p>
+      <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Active Refresh</p>
+      <p class="mt-2 text-lg font-semibold text-white"><%= @active_refresh_run&.label || "None" %></p>
+    </div>
+    <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Last Completed</p>
+      <p class="mt-2 text-lg font-semibold text-white"><%= @last_completed_refresh&.finished_at ? l(@last_completed_refresh.finished_at, format: :short) : "None" %></p>
+    </div>
+    <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Next Scheduled</p>
+      <p class="mt-2 text-lg font-semibold text-white"><%= @next_daily_refresh_at ? l(@next_daily_refresh_at, format: :short) : "Unknown" %></p>
+    </div>
+    <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Latest Run</p>
       <p class="mt-2 text-lg font-semibold text-white"><%= @latest_refresh&.label || "None" %></p>
     </div>
   </section>

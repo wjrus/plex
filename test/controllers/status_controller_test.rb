@@ -6,7 +6,9 @@ class StatusControllerTest < ActionDispatch::IntegrationTest
     @original_admin_user = ENV["ADMIN_USER"]
     @original_app_revision = ENV["APP_REVISION"]
     @original_git_sha = ENV["GIT_SHA"]
+    @original_daily_refresh_at = ENV["PLEX_DAILY_REFRESH_AT"]
     ENV["ADMIN_USERS"] = "admin@example.com"
+    ENV["PLEX_DAILY_REFRESH_AT"] = "04:15"
     ENV.delete("APP_REVISION")
     ENV.delete("GIT_SHA")
     ENV.delete("ADMIN_USER")
@@ -19,6 +21,7 @@ class StatusControllerTest < ActionDispatch::IntegrationTest
     ENV["ADMIN_USER"] = @original_admin_user
     ENV["APP_REVISION"] = @original_app_revision
     ENV["GIT_SHA"] = @original_git_sha
+    ENV["PLEX_DAILY_REFRESH_AT"] = @original_daily_refresh_at
     OmniAuth.config.mock_auth[:google_oauth2] = nil
     OmniAuth.config.test_mode = false
   end
@@ -29,6 +32,7 @@ class StatusControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", "Status"
     assert_select "p", text: "Database"
+    assert_select "p", text: "Next Scheduled"
     assert_select "form[action='#{refresh_shares_path}']"
   end
 
