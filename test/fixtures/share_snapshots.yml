@@ -1,0 +1,43 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  machine_identifier: machine-one
+  server:
+    name: Local Plex
+  libraries:
+    - id: "1"
+      key: "1"
+      title: Movies
+      type: movie
+  users:
+    - id: "42"
+      share_id: "99"
+      title: Viewer
+      username: viewer
+      email: viewer@example.com
+      thumb:
+      home: false
+      restricted: false
+      allow_sync: true
+      allow_channels: false
+      last_seen_at: 1556281940
+      last_streamed_at: 1556281941
+      last_streamed_title: Movies - Feature
+      last_streamed_type: movie
+      pending: false
+      all_libraries: true
+      library_count: 1
+      libraries:
+        - id: "1"
+          key: "1"
+          title: Movies
+          type: movie
+  fetched_at: 2026-05-23 18:09:07
+
+two:
+  machine_identifier: machine-two
+  server:
+    name: Local Plex
+  libraries: []
+  users: []
+  fetched_at: 2026-05-23 18:10:07

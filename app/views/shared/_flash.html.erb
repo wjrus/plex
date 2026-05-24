@@ -1,0 +1,21 @@
+<% message = local_assigns.fetch(:message) %>
+<% kind = local_assigns.fetch(:kind) %>
+<% alert_kind = kind.to_s == "alert" %>
+
+<div data-controller="flash"
+     data-flash-duration-value="5000"
+     class="overflow-hidden rounded-lg border text-sm shadow-2xl shadow-black/30 transition duration-150 <%= alert_kind ? "border-red-500/40 bg-red-950 text-red-100" : "border-emerald-500/40 bg-emerald-950 text-emerald-100" %>"
+     role="<%= alert_kind ? "alert" : "status" %>">
+  <div class="flex items-start gap-3 px-4 py-3">
+    <p class="min-w-0 flex-1 leading-6"><%= message %></p>
+    <button type="button"
+            class="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-current/20 text-lg leading-none transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-current/40"
+            aria-label="Dismiss message"
+            data-action="flash#dismiss">
+      &times;
+    </button>
+  </div>
+  <div class="h-1 bg-white/10">
+    <div data-flash-target="bar" class="h-full w-full <%= alert_kind ? "bg-red-300" : "bg-emerald-300" %>"></div>
+  </div>
+</div>

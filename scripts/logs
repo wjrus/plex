@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'USAGE'
+Usage:
+  ./scripts/logs [service ...]
+
+Examples:
+  ./scripts/logs
+  ./scripts/logs web
+  ./scripts/logs db
+  ./scripts/logs all
+
+When no service is given, this follows web logs. The shorthand "all" expands to
+web and db.
+USAGE
+  exit 0
+fi
+
+if (( $# == 0 )); then
+  set -- web
+fi
+
+services=()
+for service in "$@"; do
+  case "$service" in
+    all) services+=(web db) ;;
+    *) services+=("$service") ;;
+  esac
+done
+
+docker compose logs -f --tail=200 "${services[@]}"

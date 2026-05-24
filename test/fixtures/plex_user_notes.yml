@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  plex_user_id: "42"
+  username: viewer
+  email: viewer@example.com
+  notes: Existing local note
+  last_edited_by: wjr@wjr.us
+
+two:
+  plex_user_id: "99"
+  username: other
+  email: other@example.com
+  notes: Other local note
+  last_edited_by: admin@example.com

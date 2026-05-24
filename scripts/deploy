@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+log() {
+  printf "\n==> %s\n" "$*"
+}
+
+fail() {
+  printf "\nDeploy failed: %s\n" "$*" >&2
+  exit 1
+}
+
+require_file() {
+  [[ -f "$1" ]] || fail "missing $1. Copy the matching .example file and fill it in."
+}
+
+compose() {
+  docker compose "$@"
+}
+
+env_value() {
+  local key="$1"
+  local file="$2"
+
+  awk -F= -v key="$key" '$1 == key { print substr($0, length(key) + 2); exit }' "$file"
+}
+
+container_state() {
+  local service="$1"
+  local container_id
+
+  container_id="$(compose ps -q "$service")"
+  [[ -n "$container_id" ]] || {
+    printf "missing"
+    return
+  }
+
+  docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container_id"
+}
+
+wait_for_healthy() {
+  local service="$1"
+  local timeout_seconds="$2"
+  local elapsed=0
+  local state
+
+  while (( elapsed < timeout_seconds )); do
+    state="$(container_state "$service")"
+
+    if [[ "$state" == "healthy" ]]; then
+      printf "%s is healthy\n" "$service"
+      return 0
+    fi
+
+    if [[ "$state" == "exited" || "$state" == "dead" || "$state" == "unhealthy" ]]; then
+      compose logs --tail=120 "$service" >&2 || true
+      fail "$service is $state"
+    fi
+
+    sleep 3
+    elapsed=$((elapsed + 3))
+  done
+
+  compose logs --tail=120 "$service" >&2 || true
+  fail "$service did not become healthy within ${timeout_seconds}s"
+}
+
+wait_for_http() {
+  local timeout_seconds="$1"
+  local elapsed=0
+  local app_host
+  local port
+
+  app_host="$(env_value PLEX_HOST .env.production)"
+  app_host="${app_host:-plexadmin.wjr.us}"
+  port="${PLEX_ADMIN_PORT:-3010}"
+
+  while (( elapsed < timeout_seconds )); do
+    if curl -fsSI -H "Host: ${app_host}" "http://127.0.0.1:${port}/up" >/dev/null; then
+      printf "http://127.0.0.1:%s/up responded for Host: %s\n" "$port" "$app_host"
+      return 0
+    fi
+
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
+
+  compose logs --tail=120 web >&2 || true
+  fail "web did not answer /up on port ${port} within ${timeout_seconds}s"
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'USAGE'
+Usage:
+  ./scripts/deploy
+
+Builds the production image, starts PostgreSQL, runs db:prepare, starts the web
+container, and verifies the local reverse-proxy target.
+
+Set PLEX_ADMIN_PORT=3011 ./scripts/deploy to bind a different localhost port.
+USAGE
+  exit 0
+fi
+
+require_file .env.production
+require_file .env.postgres
+
+log "Building app image"
+compose build web
+
+log "Starting PostgreSQL"
+compose up -d db
+wait_for_healthy db 90
+
+log "Preparing databases"
+compose run --rm web ./bin/rails db:prepare
+
+log "Starting web"
+compose up -d --no-deps web
+wait_for_healthy web 120
+wait_for_http 30
+
+log "Deploy complete"
+compose ps

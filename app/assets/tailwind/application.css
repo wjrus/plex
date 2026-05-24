@@ -1,0 +1,204 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --theme-bg: #fafaf8;
+  --theme-panel: #ffffff;
+  --theme-panel-soft: #f4f4f5;
+  --theme-panel-strong: #ffffff;
+  --theme-text: #09090b;
+  --theme-muted: #52525b;
+  --theme-subtle: #71717a;
+  --theme-border: #e4e4e7;
+  --theme-accent: #0f766e;
+  --theme-accent-label: #134e4a;
+  --theme-accent-strong: #134e4a;
+  --theme-accent-ink: #ffffff;
+  --theme-danger: #be123c;
+  --theme-warning: #92400e;
+  --theme-shadow: 0 16px 40px rgba(9, 9, 11, 0.12);
+  --theme-focus: #0f766e;
+  --theme-font: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --theme-bg: #0b0f14;
+  --theme-panel: #111827;
+  --theme-panel-soft: #172033;
+  --theme-panel-strong: #0f172a;
+  --theme-text: #ffffff;
+  --theme-muted: #d4d4d8;
+  --theme-subtle: #a1a1aa;
+  --theme-border: #263448;
+  --theme-accent: #5eead4;
+  --theme-accent-label: #ffffff;
+  --theme-accent-strong: #99f6e4;
+  --theme-accent-ink: #001412;
+  --theme-danger: #fb7185;
+  --theme-warning: #fbbf24;
+  --theme-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
+  --theme-focus: #5eead4;
+}
+
+:root[data-theme="paper"] {
+  color-scheme: light;
+  --theme-bg: #fbf7ed;
+  --theme-panel: #fffdf6;
+  --theme-panel-soft: #f0eadc;
+  --theme-panel-strong: #ffffff;
+  --theme-text: #1f2731;
+  --theme-muted: #5f665e;
+  --theme-subtle: #77705f;
+  --theme-border: #d9cfbb;
+  --theme-accent: #2d6c68;
+  --theme-accent-label: #2d6c68;
+  --theme-accent-strong: #1f4f4c;
+  --theme-accent-ink: #fffdf6;
+  --theme-danger: #a83f3f;
+  --theme-warning: #7c4a12;
+  --theme-shadow: 0 16px 40px rgba(31, 39, 49, 0.1);
+  --theme-focus: #2d6c68;
+}
+
+:root[data-theme="terminal"] {
+  color-scheme: dark;
+  --theme-bg: #000000;
+  --theme-panel: #030603;
+  --theme-panel-soft: #071307;
+  --theme-panel-strong: #000000;
+  --theme-text: #39ff88;
+  --theme-muted: #8bd8aa;
+  --theme-subtle: #64b87f;
+  --theme-border: #16803d;
+  --theme-accent: #39ff88;
+  --theme-accent-label: #39ff88;
+  --theme-accent-strong: #a1ffc7;
+  --theme-accent-ink: #001b09;
+  --theme-danger: #ff6b6b;
+  --theme-warning: #d7ff7a;
+  --theme-shadow: 0 16px 40px rgba(57, 255, 136, 0.12);
+  --theme-focus: #39ff88;
+  --theme-font: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+:root[data-theme="amber"] {
+  color-scheme: dark;
+  --theme-bg: #100800;
+  --theme-panel: #1a0d02;
+  --theme-panel-soft: #261504;
+  --theme-panel-strong: #120900;
+  --theme-text: #ffd27a;
+  --theme-muted: #d8aa62;
+  --theme-subtle: #b88949;
+  --theme-border: #7c4a12;
+  --theme-accent: #ffd27a;
+  --theme-accent-label: #ffd27a;
+  --theme-accent-strong: #fff1c9;
+  --theme-accent-ink: #1a0d02;
+  --theme-danger: #ff8f7a;
+  --theme-warning: #ffd27a;
+  --theme-shadow: 0 16px 40px rgba(255, 210, 122, 0.11);
+  --theme-focus: #ffd27a;
+  --theme-font: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+html {
+  background: var(--theme-bg);
+}
+
+body {
+  background: var(--theme-bg);
+  color: var(--theme-text);
+  font-family: var(--theme-font);
+}
+
+html.theme-applying *,
+html.theme-applying *::before,
+html.theme-applying *::after {
+  transition: none !important;
+}
+
+.site-header {
+  background-color: color-mix(in srgb, var(--theme-bg) 92%, transparent);
+  border-color: var(--theme-border);
+  color: var(--theme-text);
+}
+
+.site-brand {
+  color: var(--theme-text);
+}
+
+.theme-picker {
+  display: inline-grid;
+  gap: 0.2rem;
+}
+
+.theme-picker__label {
+  color: var(--theme-subtle);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.theme-picker__select {
+  min-width: 8rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 0.375rem;
+  background: var(--theme-panel-strong);
+  color: var(--theme-text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.4rem 0.55rem;
+}
+
+html[data-theme] :is(.bg-zinc-950, .bg-zinc-900, .bg-zinc-900\/80) {
+  background-color: var(--theme-panel) !important;
+}
+
+html[data-theme] :is(body.bg-zinc-950, main, .min-h-screen) {
+  background-color: var(--theme-bg) !important;
+}
+
+html[data-theme] :is(.bg-zinc-800) {
+  background-color: var(--theme-panel-soft) !important;
+}
+
+html[data-theme] :is(.border-zinc-700, .border-zinc-800, .divide-zinc-800 > :not(:last-child), .border-b) {
+  border-color: var(--theme-border) !important;
+}
+
+html[data-theme] :is(.text-white, .text-zinc-100, .text-zinc-200, .text-zinc-300) {
+  color: var(--theme-text) !important;
+}
+
+html[data-theme] :is(.text-zinc-400, .text-zinc-500) {
+  color: var(--theme-muted) !important;
+}
+
+html[data-theme] .text-cyan-300 {
+  color: var(--theme-accent) !important;
+}
+
+html[data-theme] :is(.bg-cyan-300) {
+  background-color: var(--theme-accent) !important;
+  color: var(--theme-accent-ink) !important;
+}
+
+html[data-theme] :is(.hover\:bg-cyan-200:hover) {
+  background-color: var(--theme-accent-strong) !important;
+}
+
+html[data-theme] :is(input, select, textarea) {
+  accent-color: var(--theme-accent);
+  background-color: var(--theme-panel-strong);
+  border-color: var(--theme-border);
+  color: var(--theme-text);
+}
+
+html[data-theme] :is(.shadow-2xl) {
+  box-shadow: var(--theme-shadow) !important;
+}
