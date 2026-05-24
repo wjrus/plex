@@ -1,7 +1,7 @@
 require "test_helper"
 
 class SharesControllerTest < ActionDispatch::IntegrationTest
-  FakeClient = Struct.new(:removed_share_id, :created_invite) do
+  FakeClient = Struct.new(:removed_share_id, :created_invite, :updated_share) do
     def create_shared_server(_machine_identifier, invited_email, library_section_ids, allow_sync: false)
       self.created_invite = {
         invited_email: invited_email,
@@ -12,6 +12,13 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
 
     def remove_shared_server(_machine_identifier, shared_server_id)
       self.removed_share_id = shared_server_id
+    end
+
+    def update_shared_server(_machine_identifier, shared_server_id, library_section_ids)
+      self.updated_share = {
+        shared_server_id: shared_server_id,
+        library_section_ids: library_section_ids
+      }
     end
 
     def server(_machine_identifier)
@@ -76,6 +83,11 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
       },
       client.created_invite
     )
+    log = ShareAuditLog.recent.first
+    assert_equal "library_access_granted", log.action
+    assert_equal "wjr@wjr.us", log.admin_email
+    assert_equal "friend@example.com", log.target_label
+    assert_equal [ "Movies" ], log.libraries_after
   end
 
   test "admin can remove a share" do
@@ -85,6 +97,47 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
     assert_equal "99", client.removed_share_id
     assert_empty ShareSnapshot.latest_for("machine-one").users
+    log = ShareAuditLog.recent.first
+    assert_equal "library_access_removed", log.action
+    assert_equal "Viewer", log.target_label
+    assert_equal [ "Movies" ], log.libraries_removed
+  end
+
+  test "admin can update libraries and records changed libraries" do
+    ShareSnapshot.create!(
+      machine_identifier: "machine-one",
+      server: { name: "Local Plex" },
+      libraries: [
+        { id: "1", key: "1", title: "Movies", type: "movie" },
+        { id: "2", key: "2", title: "Theatre", type: "movie" }
+      ],
+      users: [
+        {
+          id: "42",
+          share_id: "99",
+          title: "Viewer",
+          username: "viewer",
+          email: "viewer@example.com",
+          libraries: [ { id: "1", key: "1", title: "Movies", type: "movie" } ],
+          library_count: 1,
+          all_libraries: false
+        }
+      ],
+      fetched_at: Time.current
+    )
+
+    client = FakeClient.new
+    with_plex_client(client) do
+      patch share_path("99"), params: { library_ids: [ "2" ] }
+    end
+
+    assert_redirected_to root_path
+    assert_equal({ shared_server_id: "99", library_section_ids: [ "2" ] }, client.updated_share)
+    log = ShareAuditLog.recent.first
+    assert_equal "libraries_changed", log.action
+    assert_equal [ "Theatre" ], log.libraries_added
+    assert_equal [ "Movies" ], log.libraries_removed
+    assert_equal [ "Theatre" ], log.libraries_after
   end
 
   private

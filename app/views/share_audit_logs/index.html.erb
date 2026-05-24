@@ -1,0 +1,50 @@
+<% content_for :title, "Plex Log" %>
+
+<div class="mx-auto flex w-full max-w-[100rem] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+  <header class="flex flex-col gap-4 border-b border-zinc-800 pb-5 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="text-sm font-medium uppercase tracking-wide text-cyan-300">Plex audit trail</p>
+      <h1 class="mt-2 text-3xl font-semibold tracking-normal text-white">Log</h1>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <%= link_to "Shares", root_path, class: "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+      <%= link_to "Users", users_path, class: "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+    </div>
+  </header>
+
+  <% if @audit_logs.empty? %>
+    <section class="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
+      <p class="text-sm leading-6 text-zinc-400">No share changes have been logged yet.</p>
+    </section>
+  <% else %>
+    <section class="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">
+      <table class="min-w-full divide-y divide-zinc-800 text-left text-sm">
+        <thead class="bg-zinc-900/80 text-xs uppercase tracking-wide text-zinc-400">
+          <tr>
+            <th class="px-4 py-3 font-semibold">When</th>
+            <th class="px-4 py-3 font-semibold">Admin</th>
+            <th class="px-4 py-3 font-semibold">Action</th>
+            <th class="px-4 py-3 font-semibold">User</th>
+            <th class="px-4 py-3 font-semibold">Details</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-zinc-800">
+          <% @audit_logs.each do |entry| %>
+            <tr class="align-top">
+              <td class="whitespace-nowrap px-4 py-3 text-zinc-300"><%= l(entry.created_at, format: :long) %></td>
+              <td class="px-4 py-3 text-zinc-300"><%= entry.admin_email %></td>
+              <td class="px-4 py-3 font-medium text-white"><%= entry.summary %></td>
+              <td class="px-4 py-3 text-zinc-300">
+                <div><%= entry.target_name %></div>
+                <% if entry.target_email.present? %>
+                  <div class="mt-1 text-xs text-zinc-500"><%= entry.target_email %></div>
+                <% end %>
+              </td>
+              <td class="max-w-xl px-4 py-3 text-zinc-400"><%= entry.details.presence || "No additional details" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </section>
+  <% end %>
+</div>

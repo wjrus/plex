@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_24_032352) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_24_050000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -23,6 +23,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_24_032352) do
     t.datetime "updated_at", null: false
     t.string "username"
     t.index ["plex_user_id"], name: "index_plex_user_notes_on_plex_user_id", unique: true
+  end
+
+  create_table "share_audit_logs", force: :cascade do |t|
+    t.string "action", null: false
+    t.string "admin_email", null: false
+    t.datetime "created_at", null: false
+    t.jsonb "libraries_added", default: [], null: false
+    t.jsonb "libraries_after", default: [], null: false
+    t.jsonb "libraries_removed", default: [], null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.string "plex_user_id"
+    t.string "share_id"
+    t.string "target_email"
+    t.string "target_label"
+    t.datetime "updated_at", null: false
+    t.index ["admin_email"], name: "index_share_audit_logs_on_admin_email"
+    t.index ["created_at"], name: "index_share_audit_logs_on_created_at"
+    t.index ["plex_user_id"], name: "index_share_audit_logs_on_plex_user_id"
+    t.index ["share_id"], name: "index_share_audit_logs_on_share_id"
   end
 
   create_table "share_snapshots", force: :cascade do |t|

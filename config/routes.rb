@@ -12,6 +12,7 @@ Rails.application.routes.draw do
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   root "shares#index"
+  get "log", to: "share_audit_logs#index", as: :share_audit_logs
   get "users", to: "users#index", as: :users
   patch "users/:plex_user_id/note", to: "users#update_note", as: :user_note
   post "refresh", to: "shares#refresh", as: :refresh_shares
