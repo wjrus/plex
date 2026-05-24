@@ -34,6 +34,7 @@ class StatusControllerTest < ActionDispatch::IntegrationTest
     assert_select "p", text: "Database"
     assert_select "p", text: "Next Scheduled"
     assert_select "form[action='#{refresh_shares_path}']"
+    assert_select "input[type=checkbox][name='include_history']"
   end
 
   test "renders revision from environment" do

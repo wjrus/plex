@@ -91,6 +91,15 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_not refresh_run.include_history
   end
 
+  test "admin can include playback history in async refresh" do
+    assert_enqueued_with(job: PlexRefreshJob) do
+      post refresh_shares_path, params: { include_history: "1" }
+    end
+
+    refresh_run = RefreshRun.latest_for("machine-one")
+    assert refresh_run.include_history
+  end
+
   test "admin cannot queue duplicate refreshes" do
     RefreshRun.create!(machine_identifier: "machine-one", status: "running")
 
