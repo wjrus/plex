@@ -67,6 +67,33 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "p", text: "No users match those filters."
   end
 
+  test "highlights pending invites" do
+    ShareSnapshot.create!(
+      machine_identifier: "machine-one",
+      server: { name: "Local Plex" },
+      libraries: [ { id: "1", key: "1", title: "Movies", type: "movie" } ],
+      users: [
+        {
+          id: "pending-one",
+          title: "Pending Friend",
+          username: "pending",
+          email: "pending@example.com",
+          pending: true,
+          library_count: 1,
+          libraries: []
+        }
+      ],
+      fetched_at: Time.current
+    )
+
+    get users_path
+
+    assert_response :success
+    assert_select "h2", "Pending Invites"
+    assert_select "p", text: /Pending Friend/
+    assert_select "a", text: "View pending"
+  end
+
   test "exports users csv" do
     get users_path(format: :csv)
 

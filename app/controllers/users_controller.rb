@@ -13,6 +13,7 @@ class UsersController < ApplicationController
     @libraries = @report&.libraries || []
     @filter_params = filter_params
     @notes_by_user_id = PlexUserNote.for_users(@report&.users || [])
+    @pending_users = (@report&.users || []).select(&:pending)
     @users = sort_users(filter_users(@report&.users || []))
     @audit_counts_by_user_id = audit_counts_for(@users)
 
