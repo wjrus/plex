@@ -16,6 +16,9 @@
   --theme-accent-ink: #ffffff;
   --theme-danger: #be123c;
   --theme-warning: #92400e;
+  --theme-warning-bg: #fff3cf;
+  --theme-warning-border: #b45309;
+  --theme-warning-text: #78350f;
   --theme-success-bg: #dff7ea;
   --theme-success-border: #2f9e65;
   --theme-success-text: #14532d;
@@ -41,6 +44,9 @@
   --theme-accent-ink: #001412;
   --theme-danger: #fb7185;
   --theme-warning: #fbbf24;
+  --theme-warning-bg: rgba(251, 191, 36, 0.14);
+  --theme-warning-border: rgba(251, 191, 36, 0.52);
+  --theme-warning-text: #fde68a;
   --theme-success-bg: rgba(52, 211, 153, 0.12);
   --theme-success-border: rgba(52, 211, 153, 0.42);
   --theme-success-text: #bbf7d0;
@@ -65,6 +71,9 @@
   --theme-accent-ink: #fffdf6;
   --theme-danger: #a83f3f;
   --theme-warning: #7c4a12;
+  --theme-warning-bg: #f7e3b3;
+  --theme-warning-border: #9a5b18;
+  --theme-warning-text: #4f2f0b;
   --theme-success-bg: #e4f2dc;
   --theme-success-border: #5d8f50;
   --theme-success-text: #274e28;
@@ -89,6 +98,9 @@
   --theme-accent-ink: #001b09;
   --theme-danger: #ff6b6b;
   --theme-warning: #d7ff7a;
+  --theme-warning-bg: rgba(215, 255, 122, 0.14);
+  --theme-warning-border: #d7ff7a;
+  --theme-warning-text: #d7ff7a;
   --theme-success-bg: rgba(57, 255, 136, 0.12);
   --theme-success-border: #39ff88;
   --theme-success-text: #39ff88;
@@ -114,6 +126,9 @@
   --theme-accent-ink: #1a0d02;
   --theme-danger: #ff8f7a;
   --theme-warning: #ffd27a;
+  --theme-warning-bg: rgba(255, 210, 122, 0.16);
+  --theme-warning-border: #ffd27a;
+  --theme-warning-text: #ffd27a;
   --theme-success-bg: rgba(255, 210, 122, 0.14);
   --theme-success-border: #ffd27a;
   --theme-success-text: #ffd27a;
@@ -213,6 +228,18 @@ html[data-theme] :is(.bg-emerald-400\/10) {
 
 html[data-theme] :is(.text-emerald-200) {
   color: var(--theme-success-text) !important;
+}
+
+html[data-theme] :is(.border-amber-400\/30) {
+  border-color: var(--theme-warning-border) !important;
+}
+
+html[data-theme] :is(.bg-amber-400\/10) {
+  background-color: var(--theme-warning-bg) !important;
+}
+
+html[data-theme] :is(.text-amber-200) {
+  color: var(--theme-warning-text) !important;
 }
 
 html[data-theme] .text-cyan-300 {
