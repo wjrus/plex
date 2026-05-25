@@ -32,6 +32,15 @@ class PlexStreamEvent < ApplicationRecord
     end
     return if rows.empty?
 
+    rows = rows.reverse.uniq do |row|
+      [
+        row[:machine_identifier],
+        row[:account_id],
+        row[:viewed_at],
+        row[:rating_key]
+      ]
+    end.reverse
+
     upsert_all(rows, unique_by: :index_stream_events_on_machine_account_viewed_rating)
   end
 

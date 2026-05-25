@@ -67,4 +67,84 @@ namespace :plex do
     )
     raise
   end
+
+  desc "Backfill local Plex playback history without refreshing shares"
+  task backfill_history: :environment do
+    STDOUT.sync = true
+    machine_identifier = ENV["PLEX_MACHINE_IDENTIFIER"].presence ||
+      raise(Plex::ConfigurationError, "Missing PLEX_MACHINE_IDENTIFIER in .env")
+    page_size = ENV.fetch("PLEX_HISTORY_PAGE_SIZE", "1000").to_i.clamp(1, 2_000)
+    max_pages = history_max_pages
+    viewed_after = history_viewed_after
+    client = Plex::Client.from_env
+    page = 0
+    total_rows = 0
+    total_saved = 0
+    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+    puts "Backfilling Plex playback history for #{machine_identifier}..."
+    puts "History scan: page_size=#{page_size} max_pages=#{max_pages || 'all'}"
+    puts "History window: #{viewed_after ? "#{ENV['PLEX_HISTORY_DAYS']}d" : 'all'}"
+
+    loop do
+      break if max_pages && page >= max_pages
+
+      history = client.playback_history(size: page_size, offset: page * page_size)
+      if history.empty?
+        puts "History page #{page + 1} retrieved: 0 rows (empty page)"
+        break
+      end
+
+      in_window_history = viewed_after ? history.reject { |stream| stream[:viewed_at].to_i < viewed_after.to_i } : history
+      before_count = PlexStreamEvent.where(machine_identifier: machine_identifier).count
+      PlexStreamEvent.upsert_streams!(machine_identifier, in_window_history)
+      saved_count = PlexStreamEvent.where(machine_identifier: machine_identifier).count - before_count
+      total_rows += history.size
+      total_saved += saved_count
+
+      stop_reason = if viewed_after && history_older_than_window?(history, viewed_after)
+        "reached history window"
+      elsif history.size < page_size
+        "last page"
+      end
+      message = "History page #{page + 1} retrieved: #{history.size.to_fs(:delimited)} rows, " \
+        "#{in_window_history.size.to_fs(:delimited)} in window, #{saved_count.to_fs(:delimited)} new events"
+      message += " (#{stop_reason})" if stop_reason
+      puts message
+      Rails.logger.info(
+        "[plex.backfill_history] page=#{page + 1} rows=#{history.size} " \
+        "in_window=#{in_window_history.size} new_events=#{saved_count} stop_reason=#{stop_reason || 'none'}"
+      )
+      break if stop_reason
+
+      page += 1
+    end
+
+    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
+    puts "Backfill complete"
+    puts "Pages: #{(page + 1).to_fs(:delimited)}"
+    puts "Rows scanned: #{total_rows.to_fs(:delimited)}"
+    puts "New events saved: #{total_saved.to_fs(:delimited)}"
+    puts "Elapsed: #{elapsed.round(1)}s"
+  end
+
+  def history_max_pages
+    value = ENV.fetch("PLEX_HISTORY_MAX_PAGES", "all")
+    return nil if value.to_s.casecmp("all").zero?
+
+    value.to_i.clamp(1, 10_000)
+  end
+
+  def history_viewed_after
+    days = ENV["PLEX_HISTORY_DAYS"].presence
+    return unless days
+    return if days.casecmp("all").zero?
+
+    days.to_i.days.ago
+  end
+
+  def history_older_than_window?(history, viewed_after)
+    oldest_viewed_at = history.filter_map { |stream| stream[:viewed_at].presence&.to_i }.min
+    oldest_viewed_at && oldest_viewed_at < viewed_after.to_i
+  end
 end
