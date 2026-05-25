@@ -59,6 +59,8 @@ class NowPlayingControllerTest < ActionDispatch::IntegrationTest
       assert_select "img[src*='/plex_cover']"
       assert_select "img[src*='%2Flibrary%2Fmetadata%2F1%2Fthumb%2F123']"
       assert_select "div[data-controller='auto-refresh'][data-auto-refresh-interval-value='10000']"
+      assert_select ".flex-1 h2.truncate"
+      assert_select "dd.break-all", text: "session-one"
     ensure
       Plex::Client.define_singleton_method(:from_env) { original_from_env.call }
     end
