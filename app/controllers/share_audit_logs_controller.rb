@@ -1,4 +1,11 @@
 class ShareAuditLogsController < ApplicationController
+  DESTRUCTIVE_ACTIONS = %w[
+    library_access_removed
+    libraries_removed
+    pending_invite_canceled
+    user_suppressed
+  ].freeze
+
   def index
     @filter_params = filter_params
     @actions = ShareAuditLog.distinct.order(:action).pluck(:action)
@@ -21,6 +28,7 @@ class ShareAuditLogsController < ApplicationController
     logs = ShareAuditLog.all
     logs = logs.where(admin_email: @filter_params[:admin_email]) if @filter_params[:admin_email].present?
     logs = logs.where(action: @filter_params[:action_type]) if @filter_params[:action_type].present?
+    logs = logs.where(action: DESTRUCTIVE_ACTIONS) if truthy_param?(@filter_params[:destructive])
     logs = logs.where("created_at >= ?", Time.zone.parse(@filter_params[:from])) if @filter_params[:from].present?
     logs = logs.where("created_at < ?", Time.zone.parse(@filter_params[:to]).tomorrow) if @filter_params[:to].present?
     if @filter_params[:q].present?
@@ -33,6 +41,10 @@ class ShareAuditLogsController < ApplicationController
   end
 
   def filter_params
-    params.permit(:q, :admin_email, :action_type, :from, :to)
+    params.permit(:q, :admin_email, :action_type, :destructive, :from, :to)
+  end
+
+  def truthy_param?(value)
+    value == true || value.to_s == "1" || value.to_s.casecmp("true").zero?
   end
 end

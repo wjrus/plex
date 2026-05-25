@@ -33,6 +33,21 @@ class ShareAuditLogsControllerTest < ActionDispatch::IntegrationTest
     assert_select "td", text: /added Movies to Viewer/
   end
 
+  test "filters destructive audit log entries" do
+    ShareAuditLog.create!(
+      action: "library_access_removed",
+      admin_email: "admin@example.com",
+      target_label: "Former Viewer",
+      libraries_removed: [ "Movies" ]
+    )
+
+    get share_audit_logs_path(destructive: "1")
+
+    assert_response :success
+    assert_select "td", text: /removed Former Viewer from all libraries/
+    assert_select "td", text: /added Movies to Viewer/, count: 0
+  end
+
   test "exports audit log csv" do
     get share_audit_logs_path(format: :csv)
 

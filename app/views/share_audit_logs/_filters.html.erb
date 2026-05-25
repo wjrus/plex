@@ -1,4 +1,4 @@
-<%= form_with url: share_audit_logs_path, method: :get, class: "grid gap-3 lg:grid-cols-[minmax(14rem,1fr)_repeat(4,minmax(10rem,12rem))_auto]" do %>
+<%= form_with url: share_audit_logs_path, method: :get, class: "grid gap-3 lg:grid-cols-[minmax(14rem,1fr)_repeat(5,minmax(10rem,12rem))_auto]" do %>
   <div>
     <label for="q" class="text-xs font-semibold uppercase tracking-wide text-zinc-500">User</label>
     <%= search_field_tag :q,
@@ -33,6 +33,13 @@
     <%= date_field_tag :to,
       @filter_params[:to],
       id: "to",
+      class: "mt-2 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" %>
+  </div>
+  <div>
+    <label for="destructive" class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Risk</label>
+    <%= select_tag :destructive,
+      options_for_select([ [ "Any", "" ], [ "Destructive only", "1" ] ], @filter_params[:destructive]),
+      id: "destructive",
       class: "mt-2 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/30" %>
   </div>
   <div class="flex items-end gap-2">
