@@ -1,5 +1,16 @@
 class StatusController < ApplicationController
   def index
+    load_status
+  end
+
+  def refresh
+    load_status
+    render partial: "refresh_panel"
+  end
+
+  private
+
+  def load_status
     @machine_identifier = ENV["PLEX_MACHINE_IDENTIFIER"].presence
     RefreshRun.mark_stale_active!(@machine_identifier)
     @database_ok = database_ok?
@@ -15,8 +26,6 @@ class StatusController < ApplicationController
     @now_playing_sample_count = @machine_identifier ? PlexNowPlayingSample.where(machine_identifier: @machine_identifier).count : 0
     @latest_now_playing_sample = @machine_identifier ? PlexNowPlayingSample.where(machine_identifier: @machine_identifier).recent.first : nil
   end
-
-  private
 
   def database_ok?
     ActiveRecord::Base.connection.active?

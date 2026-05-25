@@ -58,6 +58,27 @@ class StatusControllerTest < ActionDispatch::IntegrationTest
     assert_select "dd", text: "Viewer"
   end
 
+  test "renders refresh panel partial" do
+    ENV["PLEX_MACHINE_IDENTIFIER"] = "machine-one"
+    RefreshRun.create!(
+      machine_identifier: "machine-one",
+      status: "running",
+      admin_email: "admin@example.com",
+      include_history: true,
+      started_at: Time.current,
+      last_message: "History page 4 retrieved",
+      history_pages_retrieved: 4,
+      history_rows_retrieved: 4000
+    )
+
+    get status_refresh_path
+
+    assert_response :success
+    assert_select "h2", "Refresh"
+    assert_select "dd", text: "History page 4 retrieved"
+    assert_select "[data-controller='auto-refresh']"
+  end
+
   test "renders revision from environment" do
     ENV["APP_REVISION"] = "abc1234"
 

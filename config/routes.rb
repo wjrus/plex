@@ -18,6 +18,7 @@ Rails.application.routes.draw do
   get "stats", to: "stats#index", as: :stats
   get "libraries/:library_title", to: "libraries#show", as: :library
   get "status", to: "status#index", as: :status
+  get "status/refresh", to: "status#refresh", as: :status_refresh
   get "maintenance", to: "maintenance#index", as: :maintenance
   post "maintenance/sample_now_playing", to: "maintenance#sample_now_playing", as: :maintenance_sample_now_playing
   post "maintenance/prune_now_playing_samples", to: "maintenance#prune_now_playing_samples", as: :maintenance_prune_now_playing_samples
