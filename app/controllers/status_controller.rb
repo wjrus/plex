@@ -3,11 +3,6 @@ class StatusController < ApplicationController
     load_status
   end
 
-  def refresh
-    load_status
-    render partial: "refresh_panel"
-  end
-
   private
 
   def load_status

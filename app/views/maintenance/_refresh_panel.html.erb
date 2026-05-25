@@ -1,28 +1,37 @@
 <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5"
   <% if @active_refresh_run.present? %>
     data-controller="auto-refresh"
-    data-auto-refresh-url-value="<%= status_refresh_path %>"
+    data-auto-refresh-url-value="<%= maintenance_refresh_path %>"
     data-auto-refresh-interval-value="5000"
   <% end %>>
   <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
     <div>
-      <h2 class="text-lg font-semibold text-white">Refresh</h2>
-      <p class="mt-1 text-sm text-zinc-400">Daily auto-refresh runs in the background. Queue a manual Plex refresh here when needed.</p>
+      <h2 class="text-lg font-semibold text-white">Plex Data Refresh</h2>
+      <p class="mt-1 text-sm text-zinc-400">Fetch the latest shares, pending invites, libraries, and optional recent playback history from Plex.</p>
     </div>
     <%= form_with url: refresh_shares_path, method: :post, data: { turbo: false }, class: "grid shrink-0 gap-2" do %>
-      <label class="flex items-center gap-2 text-xs text-zinc-400">
+      <label class="flex cursor-pointer items-center gap-2 text-xs text-zinc-400">
         <%= check_box_tag :include_history,
           "1",
           false,
           disabled: @active_refresh_run.present?,
-          class: "size-4 rounded border-zinc-700 bg-zinc-950 text-cyan-300 focus:ring-cyan-300/30" %>
+          class: "size-4 rounded border-zinc-700 bg-zinc-950 text-cyan-300 focus:ring-cyan-300/30 disabled:cursor-not-allowed" %>
         Include playback history
       </label>
-      <button type="submit" <%= "disabled" if @active_refresh_run.present? %> class="inline-flex items-center justify-center rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:opacity-50">
+      <button type="submit" <%= "disabled" if @active_refresh_run.present? %> class="inline-flex cursor-pointer items-center justify-center rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:opacity-50">
         <%= @active_refresh_run ? "Refresh running" : "Refresh from Plex" %>
       </button>
     <% end %>
   </div>
+
+  <% if @active_refresh_run %>
+    <div class="mt-4 rounded-md border border-cyan-300/30 bg-cyan-300/10 p-3 text-sm text-cyan-100">
+      A refresh is currently <%= @active_refresh_run.status %>. This panel updates every 5 seconds while it is active.
+    </div>
+  <% elsif @latest_snapshot %>
+    <p class="mt-4 text-sm text-zinc-400">Latest snapshot: <%= l(@latest_snapshot.fetched_at, format: :long) %>.</p>
+  <% end %>
+
   <% if @latest_refresh %>
     <% if @latest_refresh.stale? %>
       <div class="mt-4 rounded-md border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-200">
@@ -36,12 +45,13 @@
       <div><dt class="inline text-zinc-500">Started:</dt> <dd class="inline"><%= @latest_refresh.started_at ? l(@latest_refresh.started_at, format: :long) : "not started" %></dd></div>
       <div><dt class="inline text-zinc-500">Last heartbeat:</dt> <dd class="inline"><%= l(@latest_refresh.updated_at, format: :long) %></dd></div>
       <div><dt class="inline text-zinc-500">Finished:</dt> <dd class="inline"><%= @latest_refresh.finished_at ? l(@latest_refresh.finished_at, format: :long) : "not finished" %></dd></div>
-      <div><dt class="inline text-zinc-500">Elapsed:</dt> <dd class="inline"><%= @latest_refresh.started_at ? distance_of_time_in_words(@latest_refresh.started_at, @latest_refresh.finished_at || Time.current) : "unknown" %></dd></div>
       <div><dt class="inline text-zinc-500">History:</dt> <dd class="inline"><%= @latest_refresh.include_history ? "included" : "not included" %></dd></div>
-      <div><dt class="inline text-zinc-500">History pages:</dt> <dd class="inline"><%= @latest_refresh.history_pages_retrieved %></dd></div>
-      <div><dt class="inline text-zinc-500">History rows:</dt> <dd class="inline"><%= number_with_delimiter(@latest_refresh.history_rows_retrieved) %></dd></div>
-      <div><dt class="inline text-zinc-500">Users matched:</dt> <dd class="inline"><%= @latest_refresh.history_users_matched %></dd></div>
-      <div><dt class="inline text-zinc-500">Users remaining:</dt> <dd class="inline"><%= @latest_refresh.history_users_remaining %></dd></div>
+      <% if @latest_refresh.include_history? || @latest_refresh.history_rows_retrieved.positive? %>
+        <div><dt class="inline text-zinc-500">History pages:</dt> <dd class="inline"><%= @latest_refresh.history_pages_retrieved %></dd></div>
+        <div><dt class="inline text-zinc-500">History rows:</dt> <dd class="inline"><%= number_with_delimiter(@latest_refresh.history_rows_retrieved) %></dd></div>
+        <div><dt class="inline text-zinc-500">Users matched:</dt> <dd class="inline"><%= @latest_refresh.history_users_matched %></dd></div>
+        <div><dt class="inline text-zinc-500">Users remaining:</dt> <dd class="inline"><%= @latest_refresh.history_users_remaining %></dd></div>
+      <% end %>
       <% if @latest_refresh.account_lookups_total.positive? %>
         <div><dt class="inline text-zinc-500">Account lookups:</dt> <dd class="inline"><%= @latest_refresh.account_lookups_completed %>/<%= @latest_refresh.account_lookups_total %></dd></div>
       <% end %>

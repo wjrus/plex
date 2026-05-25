@@ -1,12 +1,12 @@
 class MaintenanceController < ApplicationController
   def index
-    @machine_identifier = ENV["PLEX_MACHINE_IDENTIFIER"].presence
-    @now_playing_sample_count = sample_scope.count
-    @latest_now_playing_sample = sample_scope.recent.first
-    @oldest_now_playing_sample = sample_scope.order(:sampled_at).first
-    @retention_days = PlexNowPlayingSample.retention_days
-    @suppressed_user_count = PlexUserNote.where(suppressed: true).count
-    @history_summary = @machine_identifier ? PlexStreamEvent.history_summary(@machine_identifier) : nil
+    load_refresh
+    load_maintenance
+  end
+
+  def refresh
+    load_refresh
+    render partial: "refresh_panel"
   end
 
   def sample_now_playing
@@ -29,10 +29,33 @@ class MaintenanceController < ApplicationController
 
   private
 
+  def load_maintenance
+    @machine_identifier = ENV["PLEX_MACHINE_IDENTIFIER"].presence
+    @now_playing_sample_count = sample_scope.count
+    @latest_now_playing_sample = sample_scope.recent.first
+    @oldest_now_playing_sample = sample_scope.order(:sampled_at).first
+    @retention_days = PlexNowPlayingSample.retention_days
+    @suppressed_user_count = PlexUserNote.where(suppressed: true).count
+    @history_summary = @machine_identifier ? PlexStreamEvent.history_summary(@machine_identifier) : nil
+  end
+
+  def load_refresh
+    @machine_identifier = ENV["PLEX_MACHINE_IDENTIFIER"].presence
+    RefreshRun.mark_stale_active!(@machine_identifier)
+    @latest_refresh = refresh_scope.latest_first.first
+    @active_refresh_run = refresh_scope.active.latest_first.first
+    @last_completed_refresh = refresh_scope.where(status: "completed").latest_first.first
+    @latest_snapshot = @machine_identifier ? ShareSnapshot.latest_for(@machine_identifier) : ShareSnapshot.latest_first.first
+  end
+
   def sample_scope
     return PlexNowPlayingSample.none if @machine_identifier.blank?
 
     PlexNowPlayingSample.where(machine_identifier: @machine_identifier)
+  end
+
+  def refresh_scope
+    @machine_identifier.present? ? RefreshRun.where(machine_identifier: @machine_identifier) : RefreshRun.all
   end
 
   def required_machine_identifier

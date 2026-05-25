@@ -124,12 +124,18 @@ module Plex
         (shared_server[:user_id].presence || shared_server.dig(:user, :id)).to_s.presence
       end.to_set
       server_name = server[:name].to_s
+      server_id = server[:id].to_s
 
       client.requested_invites.filter_map do |invite|
         invite_id = invite[:id].to_s
         next if existing_user_ids.include?(invite_id)
 
-        invite_server = Array(invite[:servers]).find { |candidate| candidate[:name].to_s == server_name }
+        invite_server = Array(invite[:servers]).find do |candidate|
+          candidate[:machine_identifier].to_s == machine_identifier ||
+            candidate[:client_identifier].to_s == machine_identifier ||
+            candidate[:id].to_s == server_id ||
+            candidate[:name].to_s == server_name
+        end
         next unless truthy?(invite[:server]) && invite_server
 
         build_pending_invite(invite, invite_server, library_lookup)

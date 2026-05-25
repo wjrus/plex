@@ -1,3 +1,6 @@
+require "json"
+require "rexml/document"
+
 class SharesController < ApplicationController
   def index
     @machine_identifier = required_machine_identifier
@@ -14,7 +17,7 @@ class SharesController < ApplicationController
   def refresh
     active_run = RefreshRun.active_for(required_machine_identifier)
     if active_run
-      redirect_to status_path, notice: "Plex refresh is already #{active_run.status}."
+      redirect_to maintenance_path, notice: "Plex refresh is already #{active_run.status}."
       return
     end
 
@@ -26,9 +29,9 @@ class SharesController < ApplicationController
     )
     PlexRefreshJob.perform_later(refresh_run.id)
 
-    redirect_to status_path, notice: "Plex refresh queued."
+    redirect_to maintenance_path, notice: "Plex refresh queued."
   rescue Plex::ConfigurationError, Plex::Client::Error, ActiveRecord::ActiveRecordError => error
-    redirect_to status_path, alert: error.message
+    redirect_to maintenance_path, alert: error.message
   end
 
   def create
@@ -40,13 +43,14 @@ class SharesController < ApplicationController
     snapshot = ShareSnapshot.latest_for(required_machine_identifier)
     selected_libraries = libraries_for_ids(snapshot, library_ids)
     client = Plex::Client.from_env
-    client.create_shared_server(
+    invite_response = client.create_shared_server(
       required_machine_identifier,
       invited_email,
       library_ids,
       allow_sync: truthy_param?(params[:allow_sync])
     )
     refresh_snapshot(include_history: false)
+    pending_user = ensure_cached_pending_invite(invited_email, selected_libraries, invite_response, allow_sync: truthy_param?(params[:allow_sync]))
     ShareAuditLog.record!(
       action: "library_access_granted",
       admin_email: current_admin_email,
@@ -56,7 +60,7 @@ class SharesController < ApplicationController
       metadata: { allow_sync: truthy_param?(params[:allow_sync]) }
     )
 
-    redirect_to root_path, notice: "Plex invite sent."
+    redirect_to pending_user ? user_path(pending_user["id"]) : root_path, notice: "Plex invite sent."
   rescue Plex::ConfigurationError, Plex::Client::Error, ActiveRecord::ActiveRecordError => error
     redirect_to root_path, alert: error.message
   end
@@ -196,6 +200,96 @@ class SharesController < ApplicationController
       users: snapshot.users.reject { |user| user["id"].to_s == invite_id.to_s && user["pending"] },
       fetched_at: Time.current
     )
+  end
+
+  def ensure_cached_pending_invite(invited_email, selected_libraries, invite_response, allow_sync:)
+    snapshot = ShareSnapshot.latest_for(required_machine_identifier)
+    pending_user = pending_user_for_invite(snapshot, invited_email)
+    return pending_user if pending_user
+
+    invite_id = invite_id_from_response(invite_response)
+    return unless snapshot && invite_id.present?
+
+    pending_user = {
+      "id" => invite_id,
+      "share_id" => nil,
+      "title" => invited_email,
+      "username" => invited_email,
+      "email" => invited_email,
+      "thumb" => nil,
+      "home" => false,
+      "restricted" => false,
+      "allow_sync" => allow_sync,
+      "allow_channels" => false,
+      "last_seen_at" => nil,
+      "last_streamed_at" => nil,
+      "last_streamed_title" => nil,
+      "last_streamed_type" => nil,
+      "invited_at" => Time.current.to_i.to_s,
+      "invite_friend" => false,
+      "invite_server" => true,
+      "pending" => true,
+      "all_libraries" => same_library_ids?(snapshot.libraries, selected_libraries),
+      "library_count" => selected_libraries.size,
+      "libraries" => selected_libraries
+    }
+
+    ShareSnapshot.create!(
+      machine_identifier: snapshot.machine_identifier,
+      server: snapshot.server,
+      libraries: snapshot.libraries,
+      users: snapshot.users.reject { |user| user["id"].to_s == invite_id.to_s } + [ pending_user ],
+      fetched_at: Time.current
+    )
+    pending_user
+  end
+
+  def pending_user_for_invite(snapshot, invited_email)
+    invited_email = invited_email.to_s.downcase
+    snapshot&.users&.find do |user|
+      user["pending"] &&
+        [ user["email"], user["username"], user["title"] ].compact.any? { |value| value.to_s.downcase == invited_email }
+    end
+  end
+
+  def invite_id_from_response(response)
+    body = response.to_s.strip
+    return if body.blank?
+
+    if body.start_with?("{", "[")
+      invite_id_from_json(JSON.parse(body))
+    else
+      invite_id_from_xml(REXML::Document.new(body))
+    end
+  rescue JSON::ParserError, REXML::ParseException
+    nil
+  end
+
+  def invite_id_from_json(payload)
+    case payload
+    when Hash
+      %w[Invite invite SharedServer shared_server sharedServer].each do |key|
+        invite_id = invite_id_from_json(payload[key])
+        return invite_id if invite_id.present?
+      end
+
+      direct_id = payload["id"] || payload["ID"]
+      return direct_id if direct_id.present?
+
+      payload.each_value do |value|
+        invite_id = invite_id_from_json(value)
+        return invite_id if invite_id.present?
+      end
+    when Array
+      payload.each do |value|
+        invite_id = invite_id_from_json(value)
+        return invite_id if invite_id.present?
+      end
+    end
+  end
+
+  def invite_id_from_xml(document)
+    REXML::XPath.first(document, "//Invite|//SharedServer")&.attributes&.[]("id")
   end
 
   def truthy_param?(value)

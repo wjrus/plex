@@ -8,7 +8,9 @@
     <%= render "shared/page_nav" %>
   </header>
 
-  <section class="grid gap-4 lg:grid-cols-3">
+  <section class="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+    <%= render "refresh_panel" %>
+
     <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
       <h2 class="text-lg font-semibold text-white">Now Playing Samples</h2>
       <dl class="mt-4 grid gap-2 text-sm text-zinc-400">
@@ -21,14 +23,16 @@
         <%= button_to "Sample now",
           maintenance_sample_now_playing_path,
           method: :post,
-          class: "inline-flex items-center justify-center rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+          class: "inline-flex cursor-pointer items-center justify-center rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
         <%= button_to "Prune old samples",
           maintenance_prune_now_playing_samples_path,
           method: :post,
-          class: "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+          class: "inline-flex cursor-pointer items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
       </div>
     </div>
+  </section>
 
+  <section class="grid gap-4 lg:grid-cols-2">
     <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
       <h2 class="text-lg font-semibold text-white">Playback History</h2>
       <% if @history_summary && @history_summary[:total].positive? %>
@@ -47,7 +51,7 @@
       <p class="mt-4 text-sm text-zinc-400"><%= pluralize(@suppressed_user_count, "user") %> hidden from the default Access and Users lists.</p>
       <%= link_to "Manage suppressed users",
         suppressed_users_path,
-        class: "mt-5 inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+        class: "mt-5 inline-flex cursor-pointer items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
     </div>
   </section>
 </div>

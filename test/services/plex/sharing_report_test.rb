@@ -140,7 +140,7 @@ module Plex
               created_at: "1704307031",
               server: "1",
               home: "0",
-              servers: [ { name: "Local Plex", num_libraries: "2" } ]
+              servers: [ { name: "Renamed Server", machine_identifier: "machine-one", num_libraries: "2" } ]
             }
           ]
         end

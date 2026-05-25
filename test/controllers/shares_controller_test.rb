@@ -10,6 +10,7 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
         library_section_ids: library_section_ids,
         allow_sync: allow_sync
       }
+      %(<Invite id="invite-one" />)
     end
 
     def remove_shared_server(_machine_identifier, shared_server_id)
@@ -94,7 +95,7 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
       post refresh_shares_path
     end
 
-    assert_redirected_to status_path
+    assert_redirected_to maintenance_path
     refresh_run = RefreshRun.latest_for("machine-one")
     assert_equal "queued", refresh_run.status
     assert_equal "admin@example.com", refresh_run.admin_email
@@ -117,7 +118,7 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
       post refresh_shares_path
     end
 
-    assert_redirected_to status_path
+    assert_redirected_to maintenance_path
   end
 
   test "admin can invite a user to selected libraries" do
@@ -130,7 +131,7 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to root_path
+    assert_redirected_to user_path("invite-one")
     assert_equal(
       {
         invited_email: "friend@example.com",
@@ -139,6 +140,11 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
       },
       client.created_invite
     )
+    pending_user = ShareSnapshot.latest_for("machine-one").users.first
+    assert_equal "invite-one", pending_user["id"]
+    assert_equal "friend@example.com", pending_user["email"]
+    assert pending_user["pending"]
+    assert_equal [ "Movies" ], pending_user["libraries"].map { |library| library["title"] }
     log = ShareAuditLog.recent.first
     assert_equal "library_access_granted", log.action
     assert_equal "admin@example.com", log.admin_email
