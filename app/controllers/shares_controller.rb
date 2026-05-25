@@ -130,12 +130,20 @@ class SharesController < ApplicationController
     raise Plex::ConfigurationError, "Pending invite not found in the latest snapshot." unless pending_user&.fetch("pending", false)
 
     client = Plex::Client.from_env
-    client.cancel_requested_invite(
-      params[:invite_id],
-      friend: pending_user["invite_friend"],
-      home: pending_user["home"],
-      server: pending_user.fetch("invite_server", true)
-    )
+    begin
+      client.cancel_requested_invite(
+        params[:invite_id],
+        friend: pending_user["invite_friend"],
+        home: pending_user["home"],
+        server: pending_user.fetch("invite_server", true)
+      )
+    rescue Plex::Client::Error => error
+      raise unless plex_not_found?(error)
+
+      update_cached_invite(params[:invite_id])
+      redirect_to root_path, notice: "Pending Plex invite was already gone; local cache cleaned up."
+      return
+    end
     raise Plex::Client::Error, "Plex still reports this pending invite after cancellation." if pending_invite_still_reported?(client, pending_user)
 
     update_cached_invite(params[:invite_id])
@@ -225,6 +233,10 @@ class SharesController < ApplicationController
   rescue Plex::Client::Error => error
     Rails.logger.warn("[plex.invites] cancellation verification failed: #{error.message}")
     true
+  end
+
+  def plex_not_found?(error)
+    error.message.match?(/Plex API returned 404\b/)
   end
 
   def ensure_cached_pending_invite(invited_email, selected_libraries, invite_response, allow_sync:)

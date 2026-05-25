@@ -3,7 +3,7 @@ require "test_helper"
 class SharesControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
 
-  FakeClient = Struct.new(:removed_share_id, :created_invite, :updated_share, :canceled_invite, :remaining_invites) do
+  FakeClient = Struct.new(:removed_share_id, :created_invite, :updated_share, :canceled_invite, :remaining_invites, :cancel_error) do
     def create_shared_server(_machine_identifier, invited_email, library_section_ids, allow_sync: false)
       self.created_invite = {
         invited_email: invited_email,
@@ -25,6 +25,8 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     end
 
     def cancel_requested_invite(invite_id, friend:, home:, server:)
+      raise cancel_error if cancel_error
+
       self.canceled_invite = {
         invite_id: invite_id,
         friend: friend,
@@ -307,6 +309,39 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "pending@example.com", ShareSnapshot.latest_for("machine-one").users.first["id"]
     assert_nil ShareAuditLog.find_by(action: "pending_invite_canceled")
     assert_equal "Plex still reports this pending invite after cancellation.", flash[:alert]
+  end
+
+  test "cleans stale local pending invite when Plex returns not found" do
+    ShareSnapshot.create!(
+      machine_identifier: "machine-one",
+      server: { name: "Local Plex" },
+      libraries: [ { id: "1", key: "1", title: "Movies", type: "movie" } ],
+      users: [
+        {
+          id: "pending@example.com",
+          title: "Pending User",
+          username: "pending",
+          email: "pending@example.com",
+          home: false,
+          invite_friend: false,
+          invite_server: true,
+          pending: true,
+          all_libraries: true,
+          library_count: 1,
+          libraries: [ { id: "1", key: "1", title: "Movies", type: "movie" } ]
+        }
+      ],
+      fetched_at: Time.current
+    )
+
+    client = FakeClient.new
+    client.cancel_error = Plex::Client::Error.new("Plex API returned 404 for /api/invites/requested/pending%40example.com")
+    with_plex_client(client) { delete pending_invite_path("pending@example.com") }
+
+    assert_redirected_to root_path
+    assert_empty ShareSnapshot.latest_for("machine-one").users
+    assert_nil ShareAuditLog.find_by(action: "pending_invite_canceled")
+    assert_equal "Pending Plex invite was already gone; local cache cleaned up.", flash[:notice]
   end
 
   private
