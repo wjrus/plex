@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   get "now", to: "now_playing#index", as: :now_playing
   get "plex_cover", to: "plex_covers#show", as: :plex_cover
   get "log", to: "share_audit_logs#index", as: :share_audit_logs
+  get "stats", to: "stats#index", as: :stats
   get "status", to: "status#index", as: :status
   get "maintenance", to: "maintenance#index", as: :maintenance
   post "maintenance/sample_now_playing", to: "maintenance#sample_now_playing", as: :maintenance_sample_now_playing

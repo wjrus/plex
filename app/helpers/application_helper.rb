@@ -41,4 +41,10 @@ module ApplicationHelper
       ], " ")
     end
   end
+
+  def percentage_width(value, max_value)
+    return 0 if max_value.to_i <= 0
+
+    ((value.to_f / max_value) * 100).round(1)
+  end
 end

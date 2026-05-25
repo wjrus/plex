@@ -1,0 +1,111 @@
+<% content_for :title, "Plex Stats" %>
+
+<div class="mx-auto flex w-full max-w-[100rem] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+  <header class="flex min-h-16 flex-col gap-4 border-b border-zinc-800 pb-5 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+      <h1 class="text-3xl font-semibold tracking-normal text-white">Stats</h1>
+    </div>
+    <%= render "shared/page_nav" %>
+  </header>
+
+  <% if @configuration_error.present? || @plex_error.present? %>
+    <section class="rounded-lg border border-amber-500/40 bg-amber-950/40 p-5">
+      <h2 class="text-lg font-semibold text-amber-100">Unavailable</h2>
+      <p class="mt-2 text-sm leading-6 text-amber-50/80"><%= @configuration_error || @plex_error %></p>
+    </section>
+  <% else %>
+    <section class="grid gap-3 sm:grid-cols-3">
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Events</p>
+        <p class="mt-2 text-lg font-semibold text-white"><%= number_with_delimiter(@history_summary[:total]) %></p>
+      </div>
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Oldest</p>
+        <p class="mt-2 text-lg font-semibold text-white"><%= @history_summary[:oldest] ? l(@history_summary[:oldest], format: :short) : "None" %></p>
+      </div>
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Newest</p>
+        <p class="mt-2 text-lg font-semibold text-white"><%= @history_summary[:newest] ? l(@history_summary[:newest], format: :short) : "None" %></p>
+      </div>
+    </section>
+
+    <section class="grid gap-4 xl:grid-cols-2">
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+        <h2 class="text-lg font-semibold text-white">Library Activity</h2>
+        <div class="mt-4 grid gap-3">
+          <% @library_stats.each do |stat| %>
+            <div>
+              <div class="flex items-baseline justify-between gap-3 text-sm">
+                <span class="font-medium text-white"><%= stat[:label] %></span>
+                <span class="text-zinc-400"><%= number_with_delimiter(stat[:plays]) %> plays · <%= pluralize(stat[:users], "user") %></span>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-zinc-900">
+                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_library_plays) %>%"></div>
+              </div>
+              <p class="mt-1 text-xs text-zinc-500">Latest <%= stat[:latest] ? l(stat[:latest], format: :short) : "unknown" %></p>
+            </div>
+          <% end %>
+          <% if @library_stats.empty? %>
+            <p class="text-sm text-zinc-400">No library history yet.</p>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+        <h2 class="text-lg font-semibold text-white">Top Users</h2>
+        <div class="mt-4 grid gap-3">
+          <% @top_users.each do |stat| %>
+            <%= link_to user_path(stat[:account_id]), class: "block rounded-md border border-zinc-800 bg-zinc-900 p-3 transition hover:border-zinc-500 hover:bg-zinc-900/80" do %>
+              <div class="flex items-baseline justify-between gap-3 text-sm">
+                <span class="font-medium text-white"><%= stat[:label] %></span>
+                <span class="text-zinc-400"><%= number_with_delimiter(stat[:plays]) %> plays</span>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-zinc-950">
+                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_user_plays) %>%"></div>
+              </div>
+              <p class="mt-1 text-xs text-zinc-500">Latest <%= stat[:latest] ? l(stat[:latest], format: :short) : "unknown" %></p>
+            <% end %>
+          <% end %>
+          <% if @top_users.empty? %>
+            <p class="text-sm text-zinc-400">No user history yet.</p>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+        <h2 class="text-lg font-semibold text-white">Media Types</h2>
+        <div class="mt-4 grid gap-3">
+          <% @type_stats.each do |stat| %>
+            <div>
+              <div class="flex items-baseline justify-between gap-3 text-sm">
+                <span class="font-medium text-white"><%= stat[:label] %></span>
+                <span class="text-zinc-400"><%= number_with_delimiter(stat[:plays]) %> plays · <%= pluralize(stat[:users], "user") %></span>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-zinc-900">
+                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_type_plays) %>%"></div>
+              </div>
+            </div>
+          <% end %>
+          <% if @type_stats.empty? %>
+            <p class="text-sm text-zinc-400">No media type history yet.</p>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+        <h2 class="text-lg font-semibold text-white">Last 12 Months</h2>
+        <div class="mt-4 grid gap-3">
+          <% @monthly_stats.each do |stat| %>
+            <div class="grid grid-cols-[5.5rem_minmax(0,1fr)_4rem] items-center gap-3 text-sm">
+              <span class="text-zinc-400"><%= stat[:label] %></span>
+              <div class="h-2 overflow-hidden rounded-full bg-zinc-900">
+                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_monthly_plays) %>%"></div>
+              </div>
+              <span class="text-right text-zinc-300"><%= number_with_delimiter(stat[:plays]) %></span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </section>
+  <% end %>
+</div>
