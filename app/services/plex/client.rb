@@ -200,7 +200,7 @@ module Plex
         users: Array(container["User"]).map { |user| normalize_user_hash(user) },
         servers: Array(container["Server"]).map { |server| normalize_hash(server) },
         invites: Array(container["Invite"]).map { |invite| normalize_invite_hash(invite) },
-        metadata: Array(container["Metadata"]).map { |metadata| normalize_hash(metadata) }
+        metadata: Array(container["Metadata"]).map { |metadata| normalize_metadata_hash(metadata) }
       }
     end
 
@@ -209,7 +209,7 @@ module Plex
         users: elements(document, "//User").map { |element| user_attributes(element) },
         servers: elements(document, "//Server").map { |element| attributes(element) },
         invites: elements(document, "//Invite").map { |element| invite_attributes(element) },
-        metadata: elements(document, "//Video|//Track|//Metadata").map { |element| attributes(element) }
+        metadata: elements(document, "//Video|//Track|//Metadata").map { |element| metadata_attributes(element) }
       }
     end
 
@@ -283,10 +283,43 @@ module Plex
       )
     end
 
+    def metadata_attributes(element)
+      attributes(element).merge(nested_attributes(element))
+    end
+
     def normalize_user_hash(hash)
       normalized = normalize_hash(hash)
       normalized[:servers] = Array(hash["Server"]).map { |server| normalize_hash(server) }
       normalized
+    end
+
+    def normalize_metadata_hash(hash)
+      normalize_deep(hash)
+    end
+
+    def nested_attributes(element)
+      element.elements.each_with_object({}) do |child, nested|
+        key = child.name.to_s.underscore.to_sym
+        value = metadata_attributes(child)
+        if nested.key?(key)
+          nested[key] = Array(nested[key]) << value
+        else
+          nested[key] = value
+        end
+      end
+    end
+
+    def normalize_deep(value)
+      case value
+      when Hash
+        value.each_with_object({}) do |(key, child_value), normalized|
+          normalized[key.to_s.underscore.to_sym] = normalize_deep(child_value)
+        end
+      when Array
+        value.map { |child_value| normalize_deep(child_value) }
+      else
+        value
+      end
     end
 
     def invite_attributes(element)
