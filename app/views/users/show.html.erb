@@ -324,6 +324,42 @@
 
     <section class="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">
       <div class="border-b border-zinc-800 p-5">
+        <h2 class="text-lg font-semibold text-white">Recent Live Sessions</h2>
+      </div>
+      <% if @now_playing_samples.empty? %>
+        <p class="p-5 text-sm text-zinc-400">No sampled live sessions for this user yet.</p>
+      <% else %>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-zinc-800 text-left text-sm">
+            <thead class="bg-zinc-900/80 text-xs uppercase tracking-wide text-zinc-400">
+              <tr>
+                <th class="px-4 py-3 font-semibold">Sampled</th>
+                <th class="px-4 py-3 font-semibold">Title</th>
+                <th class="px-4 py-3 font-semibold">State</th>
+                <th class="px-4 py-3 font-semibold">Player</th>
+                <th class="px-4 py-3 font-semibold">IP Address</th>
+                <th class="px-4 py-3 font-semibold">Progress</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-800">
+              <% @now_playing_samples.each do |sample| %>
+                <tr>
+                  <td class="whitespace-nowrap px-4 py-3 text-zinc-300"><%= l(sample.sampled_at, format: :long) %></td>
+                  <td class="px-4 py-3 font-medium text-white"><%= sample.full_title.presence || sample.title.presence || "Unknown title" %></td>
+                  <td class="px-4 py-3 text-zinc-300"><%= sample.state.presence || "unknown" %></td>
+                  <td class="px-4 py-3 text-zinc-300"><%= [ sample.player_title, sample.player_platform ].compact_blank.join(" · ").presence || "Unknown" %></td>
+                  <td class="px-4 py-3 text-zinc-400"><%= sample.ip_address.presence || "Unknown" %></td>
+                  <td class="px-4 py-3 text-zinc-300"><%= sample.progress_percent ? "#{sample.progress_percent}%" : "Unknown" %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </section>
+
+    <section class="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">
+      <div class="border-b border-zinc-800 p-5">
         <h2 class="text-lg font-semibold text-white">Recent Log</h2>
       </div>
       <% if @audit_logs.empty? %>

@@ -54,6 +54,17 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
       player_platform: "tvOS",
       ip_address: "192.0.2.10"
     )
+    PlexNowPlayingSample.create!(
+      machine_identifier: "machine-one",
+      account_id: "42",
+      sampled_at: Time.zone.local(2026, 5, 24, 12, 5, 0),
+      full_title: "Taskmaster - The Noise That Blue Makes",
+      state: "playing",
+      player_title: "Bedroom TV",
+      player_platform: "tvOS",
+      ip_address: "192.0.2.11",
+      progress_percent: 42
+    )
 
     get user_path("42")
 
@@ -64,6 +75,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", "Type Mix"
     assert_select "h2", "Top Titles"
     assert_select "h2", "Stream History"
+    assert_select "h2", "Recent Live Sessions"
     assert_select "input[name='stream_q']"
     assert_select "select[name='stream_type']"
     assert_select "td", text: "Taskmaster - The Noise That Blue Makes"
@@ -72,6 +84,8 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "th", text: "Library", count: 0
     assert_select "td", text: "Apple TV · tvOS"
     assert_select "td", text: "192.0.2.10"
+    assert_select "td", text: "Bedroom TV · tvOS"
+    assert_select "td", text: "192.0.2.11"
     assert_select "dialog.confirmation-dialog"
     assert_select "input[type=checkbox][name='library_ids[]']"
     assert_select "textarea[name='plex_user_note[notes]']"

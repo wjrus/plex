@@ -49,6 +49,7 @@ class UsersController < ApplicationController
     load_stream_history
     load_user_stream_stats
     load_user_stream_charts
+    load_now_playing_samples
     @audit_logs = ShareAuditLog.where(plex_user_id: @user.id.to_s).recent.limit(50)
     respond_to do |format|
       format.html
@@ -195,6 +196,14 @@ class UsersController < ApplicationController
     @max_stream_monthly_plays = @stream_monthly_stats.map { |stat| stat[:plays] }.max.to_i
     @max_stream_type_plays = @stream_type_stats.map { |stat| stat[:plays] }.max.to_i
     @max_stream_title_plays = @stream_top_titles.map { |stat| stat[:plays] }.max.to_i
+  end
+
+  def load_now_playing_samples
+    @now_playing_samples = PlexNowPlayingSample
+      .where(machine_identifier: @machine_identifier)
+      .where("account_id = :account_id OR user_label = :label", account_id: @user.id.to_s, label: @user.label)
+      .recent
+      .limit(12)
   end
 
   def user_monthly_stats(scope)
