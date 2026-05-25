@@ -52,7 +52,8 @@ class NowPlayingControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_select "h1", "Now Playing"
-      assert_select "h2", "Taskmaster - The Noise That Blue Makes"
+      assert_select "h2", "Playing"
+      assert_select "h3", "Taskmaster - The Noise That Blue Makes"
       assert_select "p", "Viewer"
       assert_select "dd", text: "Apple TV · tvOS"
       assert_select "dd", text: "192.0.2.10"
@@ -60,7 +61,9 @@ class NowPlayingControllerTest < ActionDispatch::IntegrationTest
       assert_select "img[src*='/plex_cover']"
       assert_select "img[src*='%2Flibrary%2Fmetadata%2F1%2Fthumb%2F123']"
       assert_select "div[data-controller='auto-refresh'][data-auto-refresh-interval-value='10000']"
-      assert_select ".flex-1 h2.truncate"
+      assert_select "a[aria-label='Tile view'][aria-current='page']"
+      assert_select "a[aria-label='Compact list view']"
+      assert_select ".flex-1 h3.truncate"
       assert_select "dd.break-all", text: "session-one"
     ensure
       Plex::Client.define_singleton_method(:from_env) { original_from_env.call }
@@ -92,7 +95,7 @@ class NowPlayingControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_select "h1", false
-      assert_select "h2", "Feature"
+      assert_select "h3", "Feature"
       assert_select "p", text: "25% complete"
     ensure
       Plex::Client.define_singleton_method(:from_env) { original_from_env.call }
@@ -121,6 +124,83 @@ class NowPlayingControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_select "dd", text: "198.51.100.20"
+    ensure
+      Plex::Client.define_singleton_method(:from_env) { original_from_env.call }
+    end
+  end
+
+  test "sorts by newest inferred start and separates paused sessions" do
+    client = Class.new do
+      def playback_sessions
+        [
+          {
+            title: "Older Playing",
+            duration: "1000000",
+            view_offset: "600000",
+            user: { title: "Viewer" },
+            player: { title: "Apple TV", state: "playing" }
+          },
+          {
+            title: "Paused Feature",
+            duration: "1000000",
+            view_offset: "1000",
+            user: { title: "Viewer" },
+            player: { title: "Roku", state: "paused" }
+          },
+          {
+            title: "Newest Playing",
+            duration: "1000000",
+            view_offset: "1000",
+            user: { title: "Viewer" },
+            player: { title: "Shield", state: "playing" }
+          }
+        ]
+      end
+    end.new
+
+    original_from_env = Plex::Client.method(:from_env)
+    begin
+      Plex::Client.define_singleton_method(:from_env) { client }
+      get now_playing_path
+
+      assert_response :success
+      body = @response.body
+      assert_operator body.index("Newest Playing"), :<, body.index("Older Playing")
+      assert_operator body.index("Older Playing"), :<, body.index("Paused Feature")
+      assert_select "h2", "Playing"
+      assert_select "h2", "Paused"
+    ensure
+      Plex::Client.define_singleton_method(:from_env) { original_from_env.call }
+    end
+  end
+
+  test "renders compact list view" do
+    client = Class.new do
+      def playback_sessions
+        [
+          {
+            title: "Feature",
+            type: "movie",
+            duration: "1000",
+            view_offset: "250",
+            user: { title: "Viewer" },
+            player: { title: "Apple TV", platform: "tvOS", state: "playing" }
+          }
+        ]
+      end
+    end.new
+
+    original_from_env = Plex::Client.method(:from_env)
+    begin
+      Plex::Client.define_singleton_method(:from_env) { client }
+      get now_playing_path(view: "compact")
+
+      assert_response :success
+      assert_select "a[aria-label='Compact list view'][aria-current='page']"
+      assert_select "table"
+      assert_select "th", "Started"
+      assert_select "td p", text: "Feature"
+      assert_select "article", count: 0
     ensure
       Plex::Client.define_singleton_method(:from_env) { original_from_env.call }
     end

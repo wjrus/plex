@@ -9,10 +9,30 @@
     <%= render "shared/page_nav" %>
   </header>
 
+  <nav class="flex justify-end gap-2" aria-label="Now playing view">
+    <% compact = @view_mode == "compact" %>
+    <%= link_to "▦",
+      now_playing_path(view: "tiles"),
+      class: [
+        "inline-flex size-10 cursor-pointer items-center justify-center rounded-md border text-lg font-semibold transition focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-zinc-950",
+        compact ? "border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:bg-zinc-900 hover:text-white" : "border-cyan-300 bg-cyan-300 text-zinc-950"
+      ].join(" "),
+      aria: { label: "Tile view", current: compact ? nil : "page" },
+      title: "Tile view" %>
+    <%= link_to "☰",
+      now_playing_path(view: "compact"),
+      class: [
+        "inline-flex size-10 cursor-pointer items-center justify-center rounded-md border text-lg font-semibold transition focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-zinc-950",
+        compact ? "border-cyan-300 bg-cyan-300 text-zinc-950" : "border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:bg-zinc-900 hover:text-white"
+      ].join(" "),
+      aria: { label: "Compact list view", current: compact ? "page" : nil },
+      title: "Compact list view" %>
+  </nav>
+
   <div
     data-controller="auto-refresh"
     data-auto-refresh-interval-value="10000"
-    data-auto-refresh-url-value="<%= now_playing_path(partial: 1) %>">
+    data-auto-refresh-url-value="<%= now_playing_path(partial: 1, view: @view_mode) %>">
     <%= render "sessions" %>
   </div>
 </div>

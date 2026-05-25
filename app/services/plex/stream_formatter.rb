@@ -30,6 +30,32 @@ module Plex
       player[:state].presence || "unknown"
     end
 
+    def playing?(stream)
+      state(stream).to_s.casecmp("playing").zero?
+    end
+
+    def paused?(stream)
+      state(stream).to_s.casecmp("paused").zero?
+    end
+
+    def started_at(stream, now: Time.current)
+      explicit_timestamp = [
+        stream[:started_at],
+        stream[:session_started_at],
+        stream[:started],
+        stream.dig(:session, :started_at),
+        stream.dig(:session, :created_at),
+        stream.dig(:session, :started)
+      ].find(&:present?)
+      parsed = parse_timestamp(explicit_timestamp)
+      return parsed if parsed
+
+      offset_seconds = stream[:view_offset].to_i / 1000
+      return now unless offset_seconds.positive?
+
+      now - offset_seconds.seconds
+    end
+
     def progress_percent(stream)
       duration = stream[:duration].to_i
       offset = stream[:view_offset].to_i
@@ -43,6 +69,18 @@ module Plex
         stream[:thumb].presence ||
         stream[:parent_thumb].presence ||
         stream[:art].presence
+    end
+
+    def parse_timestamp(value)
+      return if value.blank?
+
+      if value.to_s.match?(/\A\d+\z/)
+        Time.zone.at(value.to_i)
+      else
+        Time.zone.parse(value.to_s)
+      end
+    rescue ArgumentError
+      nil
     end
   end
 end
