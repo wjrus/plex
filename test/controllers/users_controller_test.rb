@@ -345,6 +345,67 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "a", text: "View pending"
   end
 
+  test "opens pending invite detail by email address" do
+    ShareSnapshot.create!(
+      machine_identifier: "machine-one",
+      server: { name: "Local Plex" },
+      libraries: [ { id: "1", key: "1", title: "Movies", type: "movie" } ],
+      users: [
+        {
+          id: "invite-one",
+          title: "Plex Test",
+          username: "plextest",
+          email: "plextest@wjr.us",
+          home: false,
+          invite_friend: false,
+          invite_server: true,
+          pending: true,
+          all_libraries: true,
+          library_count: 1,
+          libraries: [ { id: "1", key: "1", title: "Movies", type: "movie" } ]
+        }
+      ],
+      fetched_at: Time.current
+    )
+
+    get "/users/plextest@wjr.us"
+
+    assert_response :success
+    assert_select "h1", "plextest"
+    assert_select "span", text: "Pending"
+    assert_select "button", "Cancel invite"
+  end
+
+  test "caches a pending invite from Plex when opening detail by email address" do
+    client = Object.new
+    client.define_singleton_method(:requested_invites) do
+      [
+        {
+          id: "invite-one",
+          username: "plextest",
+          email: "plextest@wjr.us",
+          friendly_name: "Plex Test",
+          created_at: "1704307031",
+          server: "1",
+          home: "0",
+          friend: "0",
+          servers: [ { name: "Local Plex", machine_identifier: "machine-one", num_libraries: "1" } ]
+        }
+      ]
+    end
+
+    with_plex_client(client) do
+      get "/users/plextest@wjr.us"
+    end
+
+    assert_response :success
+    assert_select "h1", "plextest"
+    assert_select "button", "Cancel invite"
+    pending_user = ShareSnapshot.latest_for("machine-one").users.find { |user| user["id"] == "invite-one" }
+    assert_equal "plextest@wjr.us", pending_user["email"]
+    assert pending_user["pending"]
+  end
+
   test "exports users csv" do
     get users_path(format: :csv)
 
@@ -403,6 +464,14 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def with_plex_client(client)
+    original_from_env = Plex::Client.method(:from_env)
+    Plex::Client.define_singleton_method(:from_env) { client }
+    yield
+  ensure
+    Plex::Client.define_singleton_method(:from_env, original_from_env)
+  end
 
   def sign_in
     OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(

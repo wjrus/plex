@@ -46,7 +46,8 @@ class UsersController < ApplicationController
     @active_library_ids = @libraries.flat_map { |library| [ library.id, library.key ] }.compact.map(&:to_s)
     @all_users = users_with_local_stream_accounts(@report&.users || [], include_suppressed: true)
     @notes_by_user_id = PlexUserNote.for_users(@all_users)
-    @user = @all_users.find { |user| user.id.to_s == params[:plex_user_id].to_s }
+    @user = resolve_user(params[:plex_user_id])
+    @user ||= cache_pending_invite_for(params[:plex_user_id])
     raise ActiveRecord::RecordNotFound, "Unknown Plex user" unless @user
 
     @note = PlexUserNote.find_by(plex_user_id: @user.id.to_s)
@@ -111,6 +112,104 @@ class UsersController < ApplicationController
 
   def truthy_param?(value)
     value == true || value.to_s == "1" || value.to_s.casecmp("true").zero?
+  end
+
+  def resolve_user(identifier)
+    requested = identifier.to_s.downcase
+    @all_users.find do |user|
+      user_identifiers(user).any? { |value| value.to_s.downcase == requested }
+    end
+  end
+
+  def user_identifiers(user)
+    [
+      user.id,
+      user.email,
+      user.username,
+      user.title,
+      user.label
+    ].compact_blank
+  end
+
+  def cache_pending_invite_for(identifier)
+    requested = identifier.to_s.downcase
+    return unless requested.include?("@") && @snapshot
+
+    invite = Plex::Client.from_env.requested_invites.find do |candidate|
+      user_identifiers_for_invite(candidate).any? { |value| value.to_s.downcase == requested }
+    end
+    return unless invite && invite[:id].present?
+
+    invite_server = pending_invite_server(invite)
+    pending_user = pending_user_row(invite, invite_server)
+    @snapshot = ShareSnapshot.create!(
+      machine_identifier: @snapshot.machine_identifier,
+      server: @snapshot.server,
+      libraries: @snapshot.libraries,
+      users: @snapshot.users.reject { |user| user["id"].to_s == pending_user["id"].to_s } + [ pending_user ],
+      fetched_at: Time.current
+    )
+    @report = @snapshot.to_report
+    @libraries = @report.libraries
+    @active_library_titles = @libraries.map(&:title)
+    @active_library_ids = @libraries.flat_map { |library| [ library.id, library.key ] }.compact.map(&:to_s)
+    @all_users = users_with_local_stream_accounts(@report.users, include_suppressed: true)
+    @notes_by_user_id = PlexUserNote.for_users(@all_users)
+    resolve_user(pending_user["id"]) || resolve_user(identifier)
+  rescue Plex::Client::Error => error
+    Rails.logger.warn("[plex.invites] lookup #{identifier}: #{error.message}")
+    nil
+  end
+
+  def user_identifiers_for_invite(invite)
+    [
+      invite[:id],
+      invite[:email],
+      invite[:username],
+      invite[:friendly_name],
+      invite[:title]
+    ].compact_blank
+  end
+
+  def pending_invite_server(invite)
+    server_id = @snapshot.server["id"].to_s
+    server_name = @snapshot.server["name"].to_s
+    Array(invite[:servers]).find do |candidate|
+      candidate[:machine_identifier].to_s == @machine_identifier ||
+        candidate[:client_identifier].to_s == @machine_identifier ||
+        candidate[:id].to_s == server_id ||
+        candidate[:name].to_s == server_name
+    end
+  end
+
+  def pending_user_row(invite, invite_server)
+    library_count = invite_server&.[](:num_libraries).to_i
+    all_libraries = @snapshot.libraries
+    libraries = library_count == all_libraries.size ? all_libraries : []
+
+    {
+      "id" => invite[:id],
+      "share_id" => nil,
+      "title" => invite[:friendly_name].presence || invite[:username].presence || invite[:email],
+      "username" => invite[:username],
+      "email" => invite[:email],
+      "thumb" => invite[:thumb],
+      "home" => truthy_param?(invite[:home]),
+      "restricted" => false,
+      "allow_sync" => false,
+      "allow_channels" => false,
+      "last_seen_at" => nil,
+      "last_streamed_at" => nil,
+      "last_streamed_title" => nil,
+      "last_streamed_type" => nil,
+      "invited_at" => invite[:created_at].presence || Time.current.to_i.to_s,
+      "invite_friend" => truthy_param?(invite[:friend]),
+      "invite_server" => truthy_param?(invite[:server]) || invite_server.present?,
+      "pending" => true,
+      "all_libraries" => libraries.any? && libraries.size == all_libraries.size,
+      "library_count" => library_count.positive? ? library_count : libraries.size,
+      "libraries" => libraries
+    }
   end
 
   def load_stream_history

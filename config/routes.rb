@@ -24,9 +24,10 @@ Rails.application.routes.draw do
   post "maintenance/prune_now_playing_samples", to: "maintenance#prune_now_playing_samples", as: :maintenance_prune_now_playing_samples
   get "suppressed", to: "suppressed_users#index", as: :suppressed_users
   get "users", to: "users#index", as: :users
-  get "users/:plex_user_id", to: "users#show", as: :user
-  patch "users/:plex_user_id/note", to: "users#update_note", as: :user_note
-  patch "users/:plex_user_id/suppression", to: "users#update_suppression", as: :user_suppression
+  get "users/:plex_user_id.:format", to: "users#show", constraints: { plex_user_id: /[^\/]+/, format: /csv/ }
+  get "users/:plex_user_id", to: "users#show", as: :user, constraints: { plex_user_id: /[^\/]+/ }
+  patch "users/:plex_user_id/note", to: "users#update_note", as: :user_note, constraints: { plex_user_id: /[^\/]+/ }
+  patch "users/:plex_user_id/suppression", to: "users#update_suppression", as: :user_suppression, constraints: { plex_user_id: /[^\/]+/ }
   post "refresh", to: "shares#refresh", as: :refresh_shares
   post "shares", to: "shares#create"
   post "shares/bulk", to: "shares#bulk_update", as: :bulk_shares
