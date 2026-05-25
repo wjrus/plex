@@ -3,16 +3,12 @@ module ApplicationHelper
     path = path.to_s
     return if path.blank?
 
-    base_url = ENV["PLEX_SERVER_BASE_URL"].to_s.delete_suffix("/")
-    token = ENV["PLEX_TOKEN"].to_s
-    return if base_url.blank? || token.blank?
+    uri = URI(path)
+    proxy_path = uri.absolute? ? uri.request_uri : path
+    proxy_path = "/#{proxy_path}" unless proxy_path.start_with?("/")
 
-    uri = URI(path.start_with?("http") ? path : "#{base_url}#{path.start_with?("/") ? path : "/#{path}"}")
-    query = URI.decode_www_form(uri.query.to_s)
-    query << [ "X-Plex-Token", token ] unless query.any? { |key, _value| key == "X-Plex-Token" }
-    uri.query = URI.encode_www_form(query)
-    uri.to_s
-  rescue URI::InvalidURIError
+    plex_cover_path(path: proxy_path)
+  rescue URI::InvalidURIError, ActionController::UrlGenerationError
     nil
   end
 

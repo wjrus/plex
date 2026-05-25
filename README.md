@@ -51,6 +51,10 @@ PLEX_HISTORY_MAX_PAGES=all
 PLEX_HISTORY_DAYS=730
 PLEX_CLIENT_IDENTIFIER=plex-shares-local
 PLEX_CLIENT_NAME=Plex Shares
+PLEX_OWNER_ACCOUNT_ID=
+PLEX_OWNER_NAME=
+PLEX_OWNER_USERNAME=
+PLEX_OWNER_EMAIL=
 ```
 
 `PLEX_SERVER_BASE_URL` is required for "last streamed" because playback
@@ -59,6 +63,11 @@ not from `plex.tv`.
 
 Use `http://...:32400` unless you know the server presents a certificate that
 matches the hostname you configured.
+
+The optional `PLEX_OWNER_*` values label your own playback-history account in
+the users and user detail views. Plex does not list the server owner as a shared
+library user, so the app adds any account found in local stream history that is
+not already in the share snapshot.
 
 ## Refresh behavior
 

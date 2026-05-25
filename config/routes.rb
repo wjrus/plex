@@ -13,6 +13,7 @@ Rails.application.routes.draw do
 
   root "shares#index"
   get "now", to: "now_playing#index", as: :now_playing
+  get "plex_cover", to: "plex_covers#show", as: :plex_cover
   get "log", to: "share_audit_logs#index", as: :share_audit_logs
   get "status", to: "status#index", as: :status
   get "users", to: "users#index", as: :users

@@ -1,8 +1,10 @@
 class UsersController < ApplicationController
   require "csv"
+  require "set"
 
   SORT_COLUMNS = %w[name last_streamed].freeze
   SORT_DIRECTIONS = %w[asc desc].freeze
+  helper_method :local_history_user?
 
   def index
     @machine_identifier = required_machine_identifier
@@ -11,10 +13,11 @@ class UsersController < ApplicationController
     @direction = params[:direction].presence_in(SORT_DIRECTIONS) || default_direction_for(@sort)
     @report = @snapshot&.to_report
     @libraries = @report&.libraries || []
+    @all_users = users_with_local_stream_accounts(@report&.users || [])
     @filter_params = filter_params
-    @notes_by_user_id = PlexUserNote.for_users(@report&.users || [])
-    @pending_users = (@report&.users || []).select(&:pending)
-    @users = sort_users(filter_users(@report&.users || []))
+    @notes_by_user_id = PlexUserNote.for_users(@all_users)
+    @pending_users = @all_users.select(&:pending)
+    @users = sort_users(filter_users(@all_users))
     @audit_counts_by_user_id = audit_counts_for(@users)
 
     respond_to do |format|
@@ -36,7 +39,8 @@ class UsersController < ApplicationController
     @snapshot = ShareSnapshot.latest_for(@machine_identifier)
     @report = @snapshot&.to_report
     @libraries = @report&.libraries || []
-    @user = @report&.users&.find { |user| user.id.to_s == params[:plex_user_id].to_s }
+    @all_users = users_with_local_stream_accounts(@report&.users || [])
+    @user = @all_users.find { |user| user.id.to_s == params[:plex_user_id].to_s }
     raise ActiveRecord::RecordNotFound, "Unknown Plex user" unless @user
 
     @note = PlexUserNote.find_by(plex_user_id: @user.id.to_s)
@@ -112,6 +116,77 @@ class UsersController < ApplicationController
       .count
   end
 
+  def users_with_local_stream_accounts(users)
+    users + local_stream_users(excluding: users)
+  end
+
+  def local_stream_users(excluding:)
+    excluded_ids = excluding.map { |user| user.id.to_s }.to_set
+    newest_stream_by_account_id(excluded_ids).map do |account_id, stream|
+      Plex::SharingReport::SharedUser.new(
+        id: account_id,
+        share_id: nil,
+        title: local_stream_account_title(account_id),
+        username: local_stream_account_username(account_id),
+        email: local_stream_account_email(account_id),
+        thumb: nil,
+        home: false,
+        restricted: false,
+        allow_sync: false,
+        allow_channels: false,
+        last_seen_at: nil,
+        last_streamed_at: stream.viewed_at.to_i,
+        last_streamed_title: stream.label,
+        last_streamed_type: stream.media_type,
+        invited_at: nil,
+        invite_friend: nil,
+        invite_server: nil,
+        pending: false,
+        all_libraries: false,
+        library_count: 0,
+        libraries: []
+      )
+    end
+  end
+
+  def newest_stream_by_account_id(excluded_ids)
+    latest_by_account_id = PlexStreamEvent
+      .where(machine_identifier: @machine_identifier)
+      .where.not(account_id: excluded_ids.to_a)
+      .group(:account_id)
+      .maximum(:viewed_at)
+
+    latest_by_account_id.each_with_object({}) do |(account_id, viewed_at), streams|
+      stream = PlexStreamEvent
+        .where(machine_identifier: @machine_identifier, account_id: account_id, viewed_at: viewed_at)
+        .recent
+        .first
+      streams[account_id.to_s] = stream if stream
+    end
+  end
+
+  def local_stream_account_title(account_id)
+    return ENV["PLEX_OWNER_NAME"].presence if owner_account?(account_id)
+
+    "Account #{account_id}"
+  end
+
+  def local_stream_account_username(account_id)
+    return ENV["PLEX_OWNER_USERNAME"].presence if owner_account?(account_id)
+
+    nil
+  end
+
+  def local_stream_account_email(account_id)
+    return ENV["PLEX_OWNER_EMAIL"].presence if owner_account?(account_id)
+
+    nil
+  end
+
+  def owner_account?(account_id)
+    ENV["PLEX_OWNER_ACCOUNT_ID"].present? && ENV["PLEX_OWNER_ACCOUNT_ID"].to_s == account_id.to_s
+  end
+
   def users_csv(users)
     CSV.generate(headers: true) do |csv|
       csv << [ "name", "username", "email", "status", "last_streamed_at", "last_streamed_title", "libraries", "library_count", "has_notes", "audit_events" ]
@@ -121,7 +196,7 @@ class UsersController < ApplicationController
           user.label,
           user.username,
           user.email,
-          user.pending ? "pending" : "accepted",
+          user_status(user),
           user.last_streamed_at.present? ? Time.zone.at(user.last_streamed_at.to_i).iso8601 : nil,
           user.last_streamed_title,
           user.libraries.map(&:title).to_sentence,
@@ -145,7 +220,7 @@ class UsersController < ApplicationController
     when "pending"
       user.pending
     when "accepted"
-      !user.pending
+      !user.pending && !local_history_user?(user)
     else
       true
     end
@@ -195,5 +270,16 @@ class UsersController < ApplicationController
 
   def default_direction_for(sort)
     sort == "last_streamed" ? "desc" : "asc"
+  end
+
+  def local_history_user?(user)
+    !user.pending && user.share_id.blank? && user.libraries.empty? && user.last_streamed_at.present?
+  end
+
+  def user_status(user)
+    return "pending" if user.pending
+    return "local_history" if local_history_user?(user)
+
+    "accepted"
   end
 end

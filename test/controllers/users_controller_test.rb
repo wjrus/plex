@@ -5,6 +5,10 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     @original_machine_identifier = ENV["PLEX_MACHINE_IDENTIFIER"]
     @original_admin_users = ENV["ADMIN_USERS"]
     @original_admin_user = ENV["ADMIN_USER"]
+    @original_owner_account_id = ENV["PLEX_OWNER_ACCOUNT_ID"]
+    @original_owner_name = ENV["PLEX_OWNER_NAME"]
+    @original_owner_username = ENV["PLEX_OWNER_USERNAME"]
+    @original_owner_email = ENV["PLEX_OWNER_EMAIL"]
     ENV["PLEX_MACHINE_IDENTIFIER"] = "machine-one"
     ENV["ADMIN_USERS"] = "admin@example.com, coadmin@example.com"
     ENV.delete("ADMIN_USER")
@@ -16,6 +20,10 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     ENV["PLEX_MACHINE_IDENTIFIER"] = @original_machine_identifier
     ENV["ADMIN_USERS"] = @original_admin_users
     ENV["ADMIN_USER"] = @original_admin_user
+    ENV["PLEX_OWNER_ACCOUNT_ID"] = @original_owner_account_id
+    ENV["PLEX_OWNER_NAME"] = @original_owner_name
+    ENV["PLEX_OWNER_USERNAME"] = @original_owner_username
+    ENV["PLEX_OWNER_EMAIL"] = @original_owner_email
     OmniAuth.config.mock_auth[:google_oauth2] = nil
     OmniAuth.config.test_mode = false
   end
@@ -54,6 +62,38 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[type=checkbox][name='library_ids[]']"
     assert_select "textarea[name='plex_user_note[notes]']"
     assert_select "button", "Remove user from Plex shares"
+  end
+
+  test "includes local history accounts that are not shared users" do
+    ENV["PLEX_OWNER_ACCOUNT_ID"] = "owner-one"
+    ENV["PLEX_OWNER_NAME"] = "Server Owner"
+    ENV["PLEX_OWNER_USERNAME"] = "owner"
+    ENV["PLEX_OWNER_EMAIL"] = "owner@example.com"
+
+    PlexStreamEvent.create!(
+      machine_identifier: "machine-one",
+      account_id: "owner-one",
+      viewed_at: Time.zone.local(2026, 5, 24, 13, 0, 0),
+      full_title: "Columbo - Murder by the Book",
+      library_title: "TV Shows",
+      media_type: "episode"
+    )
+
+    get users_path(q: "server owner")
+
+    assert_response :success
+    assert_select "td", text: "Server Owner"
+    assert_select "td", text: "owner@example.com"
+    assert_select "span", text: "Local history"
+    assert_select "p", text: "1 user shown"
+
+    get user_path("owner-one")
+
+    assert_response :success
+    assert_select "h1", "Server Owner"
+    assert_select "dd", text: "Local history only"
+    assert_select "p", text: /not a shared-library user/
+    assert_select "td", text: "Columbo - Murder by the Book"
   end
 
   test "filters users by search and notes" do
