@@ -222,7 +222,30 @@ html.theme-applying *::after {
 }
 
 .flash-stack {
-  z-index: 5000;
+  z-index: 2147483000;
+  pointer-events: none;
+}
+
+.flash-stack > * {
+  pointer-events: auto;
+}
+
+.flash-progress {
+  height: 0.25rem;
+  background-color: color-mix(in srgb, var(--theme-text) 16%, transparent);
+}
+
+.flash-progress__bar {
+  height: 100%;
+  width: 100%;
+}
+
+.flash-progress__bar--notice {
+  background-color: var(--theme-success-text);
+}
+
+.flash-progress__bar--alert {
+  background-color: var(--theme-danger);
 }
 
 .confirmation-dialog {

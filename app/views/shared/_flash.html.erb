@@ -15,7 +15,7 @@
       &times;
     </button>
   </div>
-  <div class="h-1 bg-white/10">
-    <div data-flash-target="bar" class="h-full w-full <%= alert_kind ? "bg-red-300" : "bg-emerald-300" %>"></div>
+  <div class="flash-progress">
+    <div data-flash-target="bar" class="flash-progress__bar <%= alert_kind ? "flash-progress__bar--alert" : "flash-progress__bar--notice" %>"></div>
   </div>
 </div>
