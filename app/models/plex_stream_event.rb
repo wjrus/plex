@@ -24,6 +24,9 @@ class PlexStreamEvent < ApplicationRecord
         full_title: stream_title(stream),
         cover_path: stream_cover_path(stream),
         library_title: stream[:library_section_title].presence,
+        player_title: stream_player_title(stream),
+        player_platform: stream_player_platform(stream),
+        ip_address: stream_ip_address(stream),
         duration: stream[:duration].presence&.to_i,
         view_offset: stream[:view_offset].presence&.to_i,
         viewed_at: Time.zone.at(viewed_at.to_i),
@@ -49,6 +52,10 @@ class PlexStreamEvent < ApplicationRecord
     full_title.presence || title.presence || "Unknown title"
   end
 
+  def player_label
+    [ player_title, player_platform ].compact_blank.join(" · ").presence || "Unknown"
+  end
+
   def self.stream_title(stream)
     [ stream[:grandparent_title], stream[:parent_title], stream[:title] ].compact_blank.join(" - ")
   end
@@ -66,5 +73,28 @@ class PlexStreamEvent < ApplicationRecord
       stream[:thumb].presence ||
       stream[:parent_thumb].presence ||
       stream[:art].presence
+  end
+
+  def self.stream_player_title(stream)
+    player = stream[:player].is_a?(Hash) ? stream[:player] : {}
+    player[:title].presence ||
+      stream[:player_title].presence ||
+      stream[:player].presence ||
+      stream[:device].presence
+  end
+
+  def self.stream_player_platform(stream)
+    player = stream[:player].is_a?(Hash) ? stream[:player] : {}
+    player[:platform].presence ||
+      stream[:player_platform].presence ||
+      stream[:platform].presence
+  end
+
+  def self.stream_ip_address(stream)
+    player = stream[:player].is_a?(Hash) ? stream[:player] : {}
+    player[:address].presence ||
+      stream[:ip_address].presence ||
+      stream[:ip].presence ||
+      stream[:address].presence
   end
 end

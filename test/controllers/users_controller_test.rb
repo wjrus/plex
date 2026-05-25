@@ -49,7 +49,10 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
       viewed_at: Time.zone.local(2026, 5, 24, 12, 0, 0),
       full_title: "Taskmaster - The Noise That Blue Makes",
       library_title: "TV Shows",
-      media_type: "episode"
+      media_type: "episode",
+      player_title: "Apple TV",
+      player_platform: "tvOS",
+      ip_address: "192.0.2.10"
     )
 
     get user_path("42")
@@ -59,6 +62,11 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", "Library Access"
     assert_select "h2", "Stream History"
     assert_select "td", text: "Taskmaster - The Noise That Blue Makes"
+    assert_select "th", text: "Player"
+    assert_select "th", text: "IP Address"
+    assert_select "th", text: "Library", count: 0
+    assert_select "td", text: "Apple TV · tvOS"
+    assert_select "td", text: "192.0.2.10"
     assert_select "input[type=checkbox][name='library_ids[]']"
     assert_select "textarea[name='plex_user_note[notes]']"
     assert_select "button", "Remove user from Plex shares"

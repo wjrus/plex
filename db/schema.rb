@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_25_001000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_25_002000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -20,9 +20,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_25_001000) do
     t.datetime "created_at", null: false
     t.integer "duration"
     t.string "full_title"
+    t.string "ip_address"
     t.string "library_title"
     t.string "machine_identifier", null: false
     t.string "media_type"
+    t.string "player_platform"
+    t.string "player_title"
     t.string "rating_key"
     t.string "title"
     t.datetime "updated_at", null: false
