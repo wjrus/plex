@@ -33,5 +33,5 @@ Rails.application.routes.draw do
   post "shares/bulk", to: "shares#bulk_update", as: :bulk_shares
   patch "shares/:share_id", to: "shares#update", as: :share
   delete "shares/:share_id", to: "shares#destroy"
-  delete "invites/:invite_id", to: "shares#destroy_invite", as: :pending_invite
+  delete "invites/:invite_id", to: "shares#destroy_invite", as: :pending_invite, constraints: { invite_id: /[^\/]+/ }
 end

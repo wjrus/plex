@@ -129,12 +129,15 @@ class SharesController < ApplicationController
     pending_user = snapshot_user_for_id(snapshot, params[:invite_id])
     raise Plex::ConfigurationError, "Pending invite not found in the latest snapshot." unless pending_user&.fetch("pending", false)
 
-    Plex::Client.from_env.cancel_requested_invite(
+    client = Plex::Client.from_env
+    client.cancel_requested_invite(
       params[:invite_id],
       friend: pending_user["invite_friend"],
       home: pending_user["home"],
       server: pending_user.fetch("invite_server", true)
     )
+    raise Plex::Client::Error, "Plex still reports this pending invite after cancellation." if pending_invite_still_reported?(client, pending_user)
+
     update_cached_invite(params[:invite_id])
     ShareAuditLog.record!(
       action: "pending_invite_canceled",
@@ -200,6 +203,28 @@ class SharesController < ApplicationController
       users: snapshot.users.reject { |user| user["id"].to_s == invite_id.to_s && user["pending"] },
       fetched_at: Time.current
     )
+  end
+
+  def pending_invite_still_reported?(client, pending_user)
+    identifiers = [
+      pending_user["id"],
+      pending_user["email"],
+      pending_user["username"],
+      pending_user["title"]
+    ].compact_blank.map { |value| value.to_s.downcase }.to_set
+
+    client.requested_invites.any? do |invite|
+      [
+        invite[:id],
+        invite[:email],
+        invite[:username],
+        invite[:friendly_name],
+        invite[:title]
+      ].compact_blank.any? { |value| identifiers.include?(value.to_s.downcase) }
+    end
+  rescue Plex::Client::Error => error
+    Rails.logger.warn("[plex.invites] cancellation verification failed: #{error.message}")
+    true
   end
 
   def ensure_cached_pending_invite(invited_email, selected_libraries, invite_response, allow_sync:)

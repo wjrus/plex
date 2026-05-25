@@ -54,7 +54,7 @@ module Plex
 
     def cancel_requested_invite(invite_id, friend:, home:, server:)
       request(
-        "/api/invites/requested/#{invite_id}",
+        "/api/invites/requested/#{URI.encode_www_form_component(invite_id)}",
         method: :delete,
         params: {
           friend: truthy_value(friend),

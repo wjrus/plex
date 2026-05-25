@@ -3,7 +3,7 @@ require "test_helper"
 class SharesControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
 
-  FakeClient = Struct.new(:removed_share_id, :created_invite, :updated_share, :canceled_invite) do
+  FakeClient = Struct.new(:removed_share_id, :created_invite, :updated_share, :canceled_invite, :remaining_invites) do
     def create_shared_server(_machine_identifier, invited_email, library_section_ids, allow_sync: false)
       self.created_invite = {
         invited_email: invited_email,
@@ -46,6 +46,10 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
 
     def users
       []
+    end
+
+    def requested_invites
+      remaining_invites || []
     end
   end
 
@@ -238,14 +242,14 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "Theatre" ], log.libraries_added
   end
 
-  test "admin can cancel pending invite" do
+  test "admin can cancel pending invite with email id" do
     ShareSnapshot.create!(
       machine_identifier: "machine-one",
       server: { name: "Local Plex" },
       libraries: [ { id: "1", key: "1", title: "Movies", type: "movie" } ],
       users: [
         {
-          id: "invite-one",
+          id: "pending@example.com",
           title: "Pending User",
           username: "pending",
           email: "pending@example.com",
@@ -262,14 +266,47 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     )
 
     client = FakeClient.new
-    with_plex_client(client) { delete pending_invite_path("invite-one") }
+    with_plex_client(client) { delete pending_invite_path("pending@example.com") }
 
     assert_redirected_to root_path
-    assert_equal({ invite_id: "invite-one", friend: false, home: false, server: true }, client.canceled_invite)
+    assert_equal({ invite_id: "pending@example.com", friend: false, home: false, server: true }, client.canceled_invite)
     assert_empty ShareSnapshot.latest_for("machine-one").users
     log = ShareAuditLog.recent.first
     assert_equal "pending_invite_canceled", log.action
     assert_equal "pending", log.target_label
+  end
+
+  test "does not hide pending invite locally when Plex still reports it" do
+    ShareSnapshot.create!(
+      machine_identifier: "machine-one",
+      server: { name: "Local Plex" },
+      libraries: [ { id: "1", key: "1", title: "Movies", type: "movie" } ],
+      users: [
+        {
+          id: "pending@example.com",
+          title: "Pending User",
+          username: "pending",
+          email: "pending@example.com",
+          home: false,
+          invite_friend: false,
+          invite_server: true,
+          pending: true,
+          all_libraries: true,
+          library_count: 1,
+          libraries: [ { id: "1", key: "1", title: "Movies", type: "movie" } ]
+        }
+      ],
+      fetched_at: Time.current
+    )
+
+    client = FakeClient.new
+    client.remaining_invites = [ { id: "pending@example.com", email: "pending@example.com" } ]
+    with_plex_client(client) { delete pending_invite_path("pending@example.com") }
+
+    assert_redirected_to root_path
+    assert_equal "pending@example.com", ShareSnapshot.latest_for("machine-one").users.first["id"]
+    assert_nil ShareAuditLog.find_by(action: "pending_invite_canceled")
+    assert_equal "Plex still reports this pending invite after cancellation.", flash[:alert]
   end
 
   private

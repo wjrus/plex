@@ -72,5 +72,24 @@ module Plex
       assert_equal "h264", history.dig(:media, 0, :video_codec)
       assert_equal "/media/feature.mkv", history.dig(:media, 0, :part, 0, :file)
     end
+
+    test "escapes requested invite ids when canceling" do
+      client = Client.new(token: "token")
+      captured_path = nil
+      captured_method = nil
+      captured_params = nil
+      client.define_singleton_method(:request) do |path, method:, params: {}|
+        captured_path = path
+        captured_method = method
+        captured_params = params
+        ""
+      end
+
+      client.cancel_requested_invite("pending@example.com", friend: false, home: false, server: true)
+
+      assert_equal "/api/invites/requested/pending%40example.com", captured_path
+      assert_equal :delete, captured_method
+      assert_equal({ friend: 0, home: 0, server: 1 }, captured_params)
+    end
   end
 end
