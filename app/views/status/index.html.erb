@@ -119,6 +119,7 @@
       <% if @history_summary && @history_summary[:total].positive? %>
         <dl class="mt-4 grid gap-2 text-sm text-zinc-400">
           <div><dt class="inline text-zinc-500">Events:</dt> <dd class="inline"><%= number_with_delimiter(@history_summary[:total]) %></dd></div>
+          <div><dt class="inline text-zinc-500">Completed plays:</dt> <dd class="inline"><%= number_with_delimiter(@history_summary[:completed_plays]) %></dd></div>
           <div><dt class="inline text-zinc-500">Oldest:</dt> <dd class="inline"><%= l(@history_summary[:oldest], format: :long) %></dd></div>
           <div><dt class="inline text-zinc-500">Newest:</dt> <dd class="inline"><%= l(@history_summary[:newest], format: :long) %></dd></div>
           <div><dt class="inline text-zinc-500">With player:</dt> <dd class="inline"><%= number_with_delimiter(@history_summary[:with_player]) %></dd></div>

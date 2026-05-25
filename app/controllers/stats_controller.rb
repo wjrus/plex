@@ -19,7 +19,7 @@ class StatsController < ApplicationController
   private
 
   def library_stats
-    event_scope
+    completed_event_scope
       .where.not(library_title: [ nil, "" ])
       .group(:library_title)
       .order(Arel.sql("COUNT(*) DESC"))
@@ -31,7 +31,7 @@ class StatsController < ApplicationController
   end
 
   def type_stats
-    event_scope
+    completed_event_scope
       .where.not(media_type: [ nil, "" ])
       .group(:media_type)
       .order(Arel.sql("COUNT(*) DESC"))
@@ -43,7 +43,7 @@ class StatsController < ApplicationController
 
   def monthly_stats
     start_time = 11.months.ago.beginning_of_month
-    counts_by_month = event_scope
+    counts_by_month = completed_event_scope
       .where("viewed_at >= ?", start_time)
       .pluck(:viewed_at)
       .each_with_object(Hash.new(0)) do |viewed_at, counts|
@@ -58,7 +58,7 @@ class StatsController < ApplicationController
 
   def top_users
     label_by_account_id = user_labels
-    event_scope
+    completed_event_scope
       .group(:account_id)
       .order(Arel.sql("COUNT(*) DESC"))
       .limit(12)
@@ -87,6 +87,10 @@ class StatsController < ApplicationController
 
   def event_scope
     PlexStreamEvent.where(machine_identifier: @machine_identifier)
+  end
+
+  def completed_event_scope
+    PlexStreamEvent.completed_play_scope(event_scope)
   end
 
   def required_machine_identifier

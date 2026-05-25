@@ -66,4 +66,23 @@ class PlexStreamEventTest < ActiveSupport::TestCase
 
     assert_equal "Feature Updated", PlexStreamEvent.find_by!(machine_identifier: "machine-one", account_id: "42").title
   end
+
+  test "completed play scope counts one completion per user title and day" do
+    attrs = {
+      machine_identifier: "machine-one",
+      account_id: "42",
+      rating_key: "rating-one",
+      full_title: "Feature",
+      media_type: "movie",
+      duration: 1000
+    }
+    PlexStreamEvent.create!(attrs.merge(viewed_at: Time.zone.local(2026, 5, 24, 10, 0, 0), view_offset: 100))
+    PlexStreamEvent.create!(attrs.merge(viewed_at: Time.zone.local(2026, 5, 24, 10, 5, 0), view_offset: 500))
+    PlexStreamEvent.create!(attrs.merge(viewed_at: Time.zone.local(2026, 5, 24, 10, 10, 0), view_offset: 950))
+    PlexStreamEvent.create!(attrs.merge(viewed_at: Time.zone.local(2026, 5, 24, 10, 15, 0), view_offset: 980))
+
+    scope = PlexStreamEvent.where(machine_identifier: "machine-one")
+    assert_equal 1, PlexStreamEvent.completed_play_scope(scope).count
+    assert_equal 1, PlexStreamEvent.history_summary("machine-one")[:completed_plays]
+  end
 end

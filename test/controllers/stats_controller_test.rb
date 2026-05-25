@@ -24,6 +24,8 @@ class StatsControllerTest < ActionDispatch::IntegrationTest
       library_title: "Movies",
       media_type: "movie",
       full_title: "Feature",
+      duration: 1000,
+      view_offset: 950,
       viewed_at: Time.zone.local(2026, 5, 24, 13, 0, 0)
     )
     PlexStreamEvent.create!(
@@ -32,6 +34,8 @@ class StatsControllerTest < ActionDispatch::IntegrationTest
       library_title: "TV Shows",
       media_type: "episode",
       full_title: "Episode",
+      duration: 1000,
+      view_offset: 920,
       viewed_at: Time.zone.local(2026, 5, 25, 13, 0, 0)
     )
 

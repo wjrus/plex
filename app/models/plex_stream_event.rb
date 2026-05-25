@@ -1,8 +1,20 @@
 class PlexStreamEvent < ApplicationRecord
+  COMPLETION_THRESHOLD = 0.9
+
   validates :machine_identifier, :account_id, :viewed_at, presence: true
 
   scope :recent, -> { order(viewed_at: :desc, id: :desc) }
   scope :for_machine, ->(machine_identifier) { where(machine_identifier: machine_identifier) }
+  scope :completed, -> { where("duration > 0 AND view_offset * 10 >= duration * 9") }
+
+  def self.completed_play_scope(scope = all)
+    deduped_ids = scope
+      .completed
+      .select("DISTINCT ON (machine_identifier, account_id, COALESCE(NULLIF(rating_key, ''), full_title, title), DATE(viewed_at)) plex_stream_events.id")
+      .order(Arel.sql("machine_identifier, account_id, COALESCE(NULLIF(rating_key, ''), full_title, title), DATE(viewed_at), viewed_at DESC, id DESC"))
+
+    where(id: deduped_ids)
+  end
 
   def self.for_user(machine_identifier, account_id, limit: 25)
     where(machine_identifier: machine_identifier, account_id: account_id.to_s)
@@ -63,6 +75,7 @@ class PlexStreamEvent < ApplicationRecord
       total: scope.count,
       oldest: scope.minimum(:viewed_at),
       newest: scope.maximum(:viewed_at),
+      completed_plays: completed_play_scope(scope).count,
       with_player: scope.where.not(player_title: [ nil, "" ]).or(scope.where.not(player_platform: [ nil, "" ])).count,
       with_ip: scope.where.not(ip_address: [ nil, "" ]).count
     }

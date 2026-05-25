@@ -16,8 +16,8 @@
   <% else %>
     <section class="grid gap-3 sm:grid-cols-3">
       <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-        <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Events</p>
-        <p class="mt-2 text-lg font-semibold text-white"><%= number_with_delimiter(@history_summary[:total]) %></p>
+        <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Completed Plays</p>
+        <p class="mt-2 text-lg font-semibold text-white"><%= number_with_delimiter(@history_summary[:completed_plays]) %></p>
       </div>
       <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
         <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Oldest</p>
@@ -34,7 +34,7 @@
         <h2 class="text-lg font-semibold text-white">Library Activity</h2>
         <div class="mt-4 grid gap-3">
           <% @library_stats.each do |stat| %>
-            <div>
+            <%= link_to library_path(stat[:label]), class: "block rounded-md p-2 transition hover:bg-zinc-900" do %>
               <div class="flex items-baseline justify-between gap-3 text-sm">
                 <span class="font-medium text-white"><%= stat[:label] %></span>
                 <span class="text-zinc-400"><%= number_with_delimiter(stat[:plays]) %> plays · <%= pluralize(stat[:users], "user") %></span>
@@ -43,7 +43,7 @@
                 <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_library_plays) %>%"></div>
               </div>
               <p class="mt-1 text-xs text-zinc-500">Latest <%= stat[:latest] ? l(stat[:latest], format: :short) : "unknown" %></p>
-            </div>
+            <% end %>
           <% end %>
           <% if @library_stats.empty? %>
             <p class="text-sm text-zinc-400">No library history yet.</p>

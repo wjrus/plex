@@ -128,7 +128,7 @@ class UsersController < ApplicationController
   end
 
   def load_user_stream_stats
-    scope = stream_scope
+    scope = completed_stream_scope
     @stream_stats = {
       total: scope.count,
       first: scope.minimum(:viewed_at),
@@ -142,6 +142,10 @@ class UsersController < ApplicationController
 
   def stream_scope
     PlexStreamEvent.where(machine_identifier: @machine_identifier, account_id: @user.id.to_s)
+  end
+
+  def completed_stream_scope
+    PlexStreamEvent.completed_play_scope(stream_scope)
   end
 
   def filtered_stream_scope
@@ -178,7 +182,7 @@ class UsersController < ApplicationController
   end
 
   def load_user_stream_charts
-    scope = stream_scope
+    scope = completed_stream_scope
     @stream_monthly_stats = user_monthly_stats(scope)
     @stream_type_stats = scope
       .where.not(media_type: [ nil, "" ])
