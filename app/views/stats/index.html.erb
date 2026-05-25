@@ -35,9 +35,9 @@
         <div class="mt-4 grid gap-3">
           <% @library_stats.each do |stat| %>
             <%= link_to library_path(stat[:label]), class: "block rounded-md p-2 transition hover:bg-zinc-900" do %>
-              <div class="flex items-baseline justify-between gap-3 text-sm">
-                <span class="font-medium text-white"><%= stat[:label] %></span>
-                <span class="text-zinc-400"><%= number_with_delimiter(stat[:plays]) %> plays · <%= pluralize(stat[:users], "user") %></span>
+              <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 text-sm">
+                <span class="min-w-0 truncate font-medium text-white" title="<%= stat[:label] %>"><%= stat[:label] %></span>
+                <span class="shrink-0 text-zinc-400"><%= number_with_delimiter(stat[:plays]) %> plays · <%= pluralize(stat[:users], "user") %></span>
               </div>
               <div class="mt-2 h-2 overflow-hidden rounded-full bg-zinc-900">
                 <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_library_plays) %>%"></div>
@@ -56,9 +56,9 @@
         <div class="mt-4 grid gap-3">
           <% @top_users.each do |stat| %>
             <%= link_to user_path(stat[:account_id]), class: "block rounded-md border border-zinc-800 bg-zinc-900 p-3 transition hover:border-zinc-500 hover:bg-zinc-900/80" do %>
-              <div class="flex items-baseline justify-between gap-3 text-sm">
-                <span class="font-medium text-white"><%= stat[:label] %></span>
-                <span class="text-zinc-400"><%= number_with_delimiter(stat[:plays]) %> plays</span>
+              <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 text-sm">
+                <span class="min-w-0 truncate font-medium text-white" title="<%= stat[:label] %>"><%= stat[:label] %></span>
+                <span class="shrink-0 text-zinc-400"><%= number_with_delimiter(stat[:plays]) %> plays</span>
               </div>
               <div class="mt-2 h-2 overflow-hidden rounded-full bg-zinc-950">
                 <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_user_plays) %>%"></div>
@@ -77,9 +77,9 @@
         <div class="mt-4 grid gap-3">
           <% @type_stats.each do |stat| %>
             <div>
-              <div class="flex items-baseline justify-between gap-3 text-sm">
-                <span class="font-medium text-white"><%= stat[:label] %></span>
-                <span class="text-zinc-400"><%= number_with_delimiter(stat[:plays]) %> plays · <%= pluralize(stat[:users], "user") %></span>
+              <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 text-sm">
+                <span class="min-w-0 truncate font-medium text-white" title="<%= stat[:label] %>"><%= stat[:label] %></span>
+                <span class="shrink-0 text-zinc-400"><%= number_with_delimiter(stat[:plays]) %> plays · <%= pluralize(stat[:users], "user") %></span>
               </div>
               <div class="mt-2 h-2 overflow-hidden rounded-full bg-zinc-900">
                 <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_type_plays) %>%"></div>

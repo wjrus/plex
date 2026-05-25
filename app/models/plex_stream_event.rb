@@ -6,15 +6,20 @@ class PlexStreamEvent < ApplicationRecord
   scope :recent, -> { order(viewed_at: :desc, id: :desc) }
   scope :for_machine, ->(machine_identifier) { where(machine_identifier: machine_identifier) }
   scope :completed, -> { where("duration > 0 AND view_offset * 10 >= duration * 9") }
-  scope :completion_unknown, -> { where("duration IS NULL OR duration <= 0 OR view_offset IS NULL") }
+  scope :video, -> { where(media_type: %w[movie episode]) }
+  scope :in_libraries, ->(library_titles) { library_titles.present? ? where(library_title: library_titles) : none }
 
   def self.completed_play_scope(scope = all)
     deduped_ids = scope
-      .where("duration IS NULL OR duration <= 0 OR view_offset IS NULL OR view_offset * 10 >= duration * 9")
+      .completed
       .select("DISTINCT ON (machine_identifier, account_id, COALESCE(NULLIF(rating_key, ''), full_title, title), DATE(viewed_at)) plex_stream_events.id")
       .order(Arel.sql("machine_identifier, account_id, COALESCE(NULLIF(rating_key, ''), full_title, title), DATE(viewed_at), viewed_at DESC, id DESC"))
 
     where(id: deduped_ids)
+  end
+
+  def self.completed_video_play_scope(scope = all, library_titles:)
+    completed_play_scope(scope.video.in_libraries(library_titles))
   end
 
   def self.for_user(machine_identifier, account_id, limit: 25)
@@ -65,6 +70,19 @@ class PlexStreamEvent < ApplicationRecord
 
   def label
     full_title.presence || title.presence || "Unknown title"
+  end
+
+  def aggregate_title
+    return series_title if media_type == "episode"
+
+    title.presence || full_title.presence || "Unknown title"
+  end
+
+  def series_title
+    metadata_value(:grandparent_title).presence ||
+      full_title.to_s.split(" - ").first.presence ||
+      title.presence ||
+      "Unknown series"
   end
 
   def player_label
@@ -123,5 +141,9 @@ class PlexStreamEvent < ApplicationRecord
       stream[:ip_address].presence ||
       stream[:ip].presence ||
       stream[:address].presence
+  end
+
+  def metadata_value(key)
+    metadata[key.to_s].presence || metadata[key.to_sym].presence
   end
 end

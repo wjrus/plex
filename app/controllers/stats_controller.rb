@@ -1,6 +1,7 @@
 class StatsController < ApplicationController
   def index
     @machine_identifier = required_machine_identifier
+    @active_library_titles = active_library_titles
     @history_summary = PlexStreamEvent.history_summary(@machine_identifier)
     @library_stats = library_stats
     @type_stats = type_stats
@@ -68,6 +69,11 @@ class StatsController < ApplicationController
       end
   end
 
+  def active_library_titles
+    snapshot = ShareSnapshot.latest_for(@machine_identifier)
+    Array(snapshot&.to_report&.libraries).map(&:title)
+  end
+
   def user_labels
     labels = PlexUserNote.where.not(username: [ nil, "" ]).pluck(:plex_user_id, :username).to_h
     snapshot = ShareSnapshot.latest_for(@machine_identifier)
@@ -90,7 +96,7 @@ class StatsController < ApplicationController
   end
 
   def completed_event_scope
-    PlexStreamEvent.completed_play_scope(event_scope)
+    PlexStreamEvent.completed_video_play_scope(event_scope, library_titles: @active_library_titles)
   end
 
   def required_machine_identifier

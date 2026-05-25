@@ -13,6 +13,7 @@ class UsersController < ApplicationController
     @direction = params[:direction].presence_in(SORT_DIRECTIONS) || default_direction_for(@sort)
     @report = @snapshot&.to_report
     @libraries = @report&.libraries || []
+    @active_library_titles = @libraries.map(&:title)
     @filter_params = filter_params
     @all_users = users_with_local_stream_accounts(@report&.users || [], include_suppressed: showing_suppressed?)
     @notes_by_user_id = PlexUserNote.for_users(@all_users)
@@ -145,7 +146,7 @@ class UsersController < ApplicationController
   end
 
   def completed_stream_scope
-    PlexStreamEvent.completed_play_scope(stream_scope)
+    PlexStreamEvent.completed_video_play_scope(stream_scope, library_titles: @active_library_titles)
   end
 
   def filtered_stream_scope
@@ -190,13 +191,7 @@ class UsersController < ApplicationController
       .order(Arel.sql("COUNT(*) DESC"))
       .pluck(:media_type, Arel.sql("COUNT(*)"))
       .map { |media_type, plays| { label: media_type, plays: plays } }
-    @stream_top_titles = scope
-      .where.not(full_title: [ nil, "" ])
-      .group(:full_title)
-      .order(Arel.sql("COUNT(*) DESC"))
-      .limit(8)
-      .pluck(:full_title, Arel.sql("COUNT(*)"), Arel.sql("MAX(viewed_at)"))
-      .map { |title, plays, latest| { label: title, plays: plays, latest: latest } }
+    @stream_top_titles = aggregate_title_stats(scope, limit: 8)
     @max_stream_monthly_plays = @stream_monthly_stats.map { |stat| stat[:plays] }.max.to_i
     @max_stream_type_plays = @stream_type_stats.map { |stat| stat[:plays] }.max.to_i
     @max_stream_title_plays = @stream_top_titles.map { |stat| stat[:plays] }.max.to_i
@@ -223,6 +218,18 @@ class UsersController < ApplicationController
       month = months_ago.months.ago.beginning_of_month
       { label: month.strftime("%b %Y"), plays: counts_by_month.fetch(month.to_date, 0) }
     end
+  end
+
+  def aggregate_title_stats(scope, limit:)
+    scope
+      .recent
+      .to_a
+      .group_by(&:aggregate_title)
+      .map do |title, events|
+        { label: title, plays: events.size, latest: events.map(&:viewed_at).max }
+      end
+      .sort_by { |stat| [ -stat[:plays], stat[:label].downcase ] }
+      .first(limit)
   end
 
   def top_group_value(scope, column)

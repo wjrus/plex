@@ -282,10 +282,10 @@
         <h2 class="text-lg font-semibold text-white">Type Mix</h2>
         <div class="mt-4 grid gap-3">
           <% @stream_type_stats.each do |stat| %>
-            <div>
-              <div class="flex items-baseline justify-between gap-3 text-sm">
-                <span class="font-medium text-white"><%= stat[:label] %></span>
-                <span class="text-zinc-400"><%= number_with_delimiter(stat[:plays]) %></span>
+            <div class="min-w-0">
+              <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 text-sm">
+                <span class="min-w-0 truncate font-medium text-white"><%= stat[:label] %></span>
+                <span class="shrink-0 text-zinc-400"><%= number_with_delimiter(stat[:plays]) %></span>
               </div>
               <div class="mt-2 h-2 overflow-hidden rounded-full bg-zinc-900">
                 <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_stream_type_plays) %>%"></div>
@@ -302,9 +302,9 @@
         <h2 class="text-lg font-semibold text-white">Top Titles</h2>
         <div class="mt-4 grid gap-3">
           <% @stream_top_titles.each do |stat| %>
-            <div>
-              <div class="flex items-baseline justify-between gap-3 text-sm">
-                <span class="min-w-0 truncate font-medium text-white"><%= stat[:label] %></span>
+            <div class="min-w-0">
+              <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 text-sm">
+                <span class="min-w-0 truncate font-medium text-white" title="<%= stat[:label] %>"><%= stat[:label] %></span>
                 <span class="shrink-0 text-zinc-400"><%= number_with_delimiter(stat[:plays]) %></span>
               </div>
               <div class="mt-2 h-2 overflow-hidden rounded-full bg-zinc-900">

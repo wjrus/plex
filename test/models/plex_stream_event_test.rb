@@ -87,7 +87,7 @@ class PlexStreamEventTest < ActiveSupport::TestCase
     assert_equal 1, PlexStreamEvent.history_summary("machine-one")[:completed_plays]
   end
 
-  test "completed play scope keeps deduped history rows when completion data is unavailable" do
+  test "completed play scope ignores rows when completion data is unavailable" do
     attrs = {
       machine_identifier: "machine-one",
       account_id: "42",
@@ -100,6 +100,55 @@ class PlexStreamEventTest < ActiveSupport::TestCase
     PlexStreamEvent.create!(attrs.merge(viewed_at: Time.zone.local(2026, 5, 25, 10, 5, 0)))
 
     scope = PlexStreamEvent.where(machine_identifier: "machine-one")
-    assert_equal 2, PlexStreamEvent.completed_play_scope(scope).count
+    assert_equal 0, PlexStreamEvent.completed_play_scope(scope).count
+  end
+
+  test "completed video play scope ignores audio and inactive libraries" do
+    PlexStreamEvent.create!(
+      machine_identifier: "machine-one",
+      account_id: "42",
+      rating_key: "movie-one",
+      full_title: "Feature",
+      library_title: "Movies",
+      media_type: "movie",
+      duration: 1000,
+      view_offset: 950,
+      viewed_at: Time.zone.local(2026, 5, 24, 10, 0, 0)
+    )
+    PlexStreamEvent.create!(
+      machine_identifier: "machine-one",
+      account_id: "42",
+      rating_key: "track-one",
+      full_title: "Song",
+      library_title: "Music",
+      media_type: "track",
+      duration: 1000,
+      view_offset: 950,
+      viewed_at: Time.zone.local(2026, 5, 24, 11, 0, 0)
+    )
+    PlexStreamEvent.create!(
+      machine_identifier: "machine-one",
+      account_id: "42",
+      rating_key: "old-one",
+      full_title: "Old Feature",
+      library_title: "Old Movies",
+      media_type: "movie",
+      duration: 1000,
+      view_offset: 950,
+      viewed_at: Time.zone.local(2026, 5, 24, 12, 0, 0)
+    )
+
+    scope = PlexStreamEvent.where(machine_identifier: "machine-one")
+    assert_equal [ "Feature" ], PlexStreamEvent.completed_video_play_scope(scope, library_titles: [ "Movies" ]).map(&:full_title)
+  end
+
+  test "aggregate title uses series title for episodes" do
+    event = PlexStreamEvent.new(
+      media_type: "episode",
+      full_title: "Show - Season 1 - Episode",
+      metadata: { grandparent_title: "Show" }
+    )
+
+    assert_equal "Show", event.aggregate_title
   end
 end

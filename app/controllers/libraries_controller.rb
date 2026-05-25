@@ -33,7 +33,7 @@ class LibrariesController < ApplicationController
   end
 
   def type_stats
-    event_scope
+    @events
       .where.not(media_type: [ nil, "" ])
       .group(:media_type)
       .order(Arel.sql("COUNT(*) DESC"))
@@ -43,7 +43,7 @@ class LibrariesController < ApplicationController
 
   def top_users
     labels = user_labels
-    event_scope
+    @events
       .group(:account_id)
       .order(Arel.sql("COUNT(*) DESC"))
       .limit(12)
@@ -64,7 +64,9 @@ class LibrariesController < ApplicationController
   end
 
   def completed_event_scope
-    PlexStreamEvent.completed_play_scope(event_scope)
+    return PlexStreamEvent.none unless library_from_snapshot
+
+    PlexStreamEvent.completed_video_play_scope(event_scope, library_titles: [ @library_title ])
   end
 
   def required_machine_identifier
