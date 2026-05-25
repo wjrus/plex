@@ -60,13 +60,20 @@ class LibrariesController < ApplicationController
   end
 
   def event_scope
-    PlexStreamEvent.where(machine_identifier: @machine_identifier, library_title: @library_title)
+    ids = [ @library&.id, @library&.key ].compact.map(&:to_s)
+    PlexStreamEvent
+      .where(machine_identifier: @machine_identifier)
+      .where("library_title = :title OR metadata->>'library_section_id' IN (:ids)", title: @library_title, ids: ids)
   end
 
   def completed_event_scope
     return PlexStreamEvent.none unless library_from_snapshot
 
-    PlexStreamEvent.completed_video_play_scope(event_scope, library_titles: [ @library_title ])
+    PlexStreamEvent.completed_video_play_scope(
+      event_scope,
+      library_titles: [ @library_title ],
+      library_ids: [ @library.id, @library.key ].compact.map(&:to_s)
+    )
   end
 
   def required_machine_identifier

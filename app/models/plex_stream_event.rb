@@ -6,20 +6,31 @@ class PlexStreamEvent < ApplicationRecord
   scope :recent, -> { order(viewed_at: :desc, id: :desc) }
   scope :for_machine, ->(machine_identifier) { where(machine_identifier: machine_identifier) }
   scope :completed, -> { where("duration > 0 AND view_offset * 10 >= duration * 9") }
+  scope :without_completion_data, -> { where("duration IS NULL OR duration <= 0 OR view_offset IS NULL") }
   scope :video, -> { where(media_type: %w[movie episode]) }
-  scope :in_libraries, ->(library_titles) { library_titles.present? ? where(library_title: library_titles) : none }
+  scope :in_active_libraries, lambda { |library_titles:, library_ids:|
+    if library_titles.blank? && library_ids.blank?
+      none
+    else
+      where("library_title IN (:titles) OR metadata->>'library_section_id' IN (:ids)", titles: library_titles, ids: library_ids.map(&:to_s))
+    end
+  }
 
   def self.completed_play_scope(scope = all)
     deduped_ids = scope
-      .completed
+      .where("(duration > 0 AND view_offset * 10 >= duration * 9) OR duration IS NULL OR duration <= 0 OR view_offset IS NULL")
       .select("DISTINCT ON (machine_identifier, account_id, COALESCE(NULLIF(rating_key, ''), full_title, title), DATE(viewed_at)) plex_stream_events.id")
       .order(Arel.sql("machine_identifier, account_id, COALESCE(NULLIF(rating_key, ''), full_title, title), DATE(viewed_at), viewed_at DESC, id DESC"))
 
     where(id: deduped_ids)
   end
 
-  def self.completed_video_play_scope(scope = all, library_titles:)
-    completed_play_scope(scope.video.in_libraries(library_titles))
+  def self.completed_video_play_scope(scope = all, library_titles:, library_ids:)
+    completed_play_scope(scope.video.in_active_libraries(library_titles: library_titles, library_ids: library_ids))
+  end
+
+  def library_identifier
+    library_title.presence || metadata_value(:library_section_id).presence || "unknown"
   end
 
   def self.for_user(machine_identifier, account_id, limit: 25)

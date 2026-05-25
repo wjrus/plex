@@ -1,7 +1,10 @@
 class StatsController < ApplicationController
   def index
     @machine_identifier = required_machine_identifier
-    @active_library_titles = active_library_titles
+    @active_libraries = active_libraries
+    @active_library_titles = @active_libraries.map(&:title)
+    @active_library_ids = @active_libraries.flat_map { |library| [ library.id, library.key ] }.compact.map(&:to_s)
+    @library_labels_by_identifier = library_labels_by_identifier
     @history_summary = PlexStreamEvent.history_summary(@machine_identifier)
     @library_stats = library_stats
     @type_stats = type_stats
@@ -21,14 +24,13 @@ class StatsController < ApplicationController
 
   def library_stats
     completed_event_scope
-      .where.not(library_title: [ nil, "" ])
-      .group(:library_title)
-      .order(Arel.sql("COUNT(*) DESC"))
-      .limit(12)
-      .pluck(:library_title, Arel.sql("COUNT(*)"), Arel.sql("COUNT(DISTINCT account_id)"), Arel.sql("MAX(viewed_at)"))
-      .map do |library_title, plays, users, latest|
-        { label: library_title, plays: plays, users: users, latest: latest }
+      .to_a
+      .group_by(&:library_identifier)
+      .map do |identifier, events|
+        { label: @library_labels_by_identifier.fetch(identifier.to_s, identifier.to_s), plays: events.size, users: events.map(&:account_id).uniq.size, latest: events.map(&:viewed_at).max }
       end
+      .sort_by { |stat| [ -stat[:plays], stat[:label].downcase ] }
+      .first(12)
   end
 
   def type_stats
@@ -69,9 +71,17 @@ class StatsController < ApplicationController
       end
   end
 
-  def active_library_titles
+  def active_libraries
     snapshot = ShareSnapshot.latest_for(@machine_identifier)
-    Array(snapshot&.to_report&.libraries).map(&:title)
+    Array(snapshot&.to_report&.libraries)
+  end
+
+  def library_labels_by_identifier
+    @active_libraries.each_with_object({}) do |library, labels|
+      labels[library.title.to_s] = library.title
+      labels[library.id.to_s] = library.title if library.id.present?
+      labels[library.key.to_s] = library.title if library.key.present?
+    end
   end
 
   def user_labels
@@ -96,7 +106,7 @@ class StatsController < ApplicationController
   end
 
   def completed_event_scope
-    PlexStreamEvent.completed_video_play_scope(event_scope, library_titles: @active_library_titles)
+    PlexStreamEvent.completed_video_play_scope(event_scope, library_titles: @active_library_titles, library_ids: @active_library_ids)
   end
 
   def required_machine_identifier

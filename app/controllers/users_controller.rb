@@ -14,6 +14,7 @@ class UsersController < ApplicationController
     @report = @snapshot&.to_report
     @libraries = @report&.libraries || []
     @active_library_titles = @libraries.map(&:title)
+    @active_library_ids = @libraries.flat_map { |library| [ library.id, library.key ] }.compact.map(&:to_s)
     @filter_params = filter_params
     @all_users = users_with_local_stream_accounts(@report&.users || [], include_suppressed: showing_suppressed?)
     @notes_by_user_id = PlexUserNote.for_users(@all_users)
@@ -146,7 +147,7 @@ class UsersController < ApplicationController
   end
 
   def completed_stream_scope
-    PlexStreamEvent.completed_video_play_scope(stream_scope, library_titles: @active_library_titles)
+    PlexStreamEvent.completed_video_play_scope(stream_scope, library_titles: @active_library_titles, library_ids: @active_library_ids)
   end
 
   def filtered_stream_scope
