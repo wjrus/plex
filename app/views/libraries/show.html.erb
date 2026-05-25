@@ -1,0 +1,124 @@
+<% content_for :title, "Plex Library" %>
+
+<div class="mx-auto flex w-full max-w-[100rem] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+  <header class="flex min-h-16 flex-col gap-4 border-b border-zinc-800 pb-5 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+      <h1 class="text-3xl font-semibold tracking-normal text-white"><%= @library_title.presence || "Library" %></h1>
+      <% if @library %>
+        <span class="text-sm text-zinc-400"><%= @library.type %></span>
+      <% end %>
+    </div>
+    <%= render "shared/page_nav" %>
+  </header>
+
+  <% if @configuration_error.present? || @plex_error.present? %>
+    <section class="rounded-lg border border-amber-500/40 bg-amber-950/40 p-5">
+      <h2 class="text-lg font-semibold text-amber-100">Unavailable</h2>
+      <p class="mt-2 text-sm leading-6 text-amber-50/80"><%= @configuration_error || @plex_error %></p>
+    </section>
+  <% else %>
+    <section class="grid gap-3 sm:grid-cols-3">
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Events</p>
+        <p class="mt-2 text-lg font-semibold text-white"><%= number_with_delimiter(@event_count) %></p>
+      </div>
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">History Users</p>
+        <p class="mt-2 text-lg font-semibold text-white"><%= number_with_delimiter(@unique_user_count) %></p>
+      </div>
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+        <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Latest Stream</p>
+        <p class="mt-2 text-lg font-semibold text-white"><%= @latest_event ? l(@latest_event.viewed_at, format: :short) : "None" %></p>
+      </div>
+    </section>
+
+    <section class="grid gap-4 xl:grid-cols-2">
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+        <h2 class="text-lg font-semibold text-white">Shared Users</h2>
+        <% if @shared_users.any? %>
+          <div class="mt-4 grid gap-2 sm:grid-cols-2">
+            <% @shared_users.each do |user| %>
+              <%= link_to user_path(user.id), class: "rounded-md border border-zinc-800 bg-zinc-900 p-3 transition hover:border-zinc-500" do %>
+                <div class="font-medium text-white"><%= user.label %></div>
+                <div class="mt-1 text-xs text-zinc-500"><%= user.email.presence || user.username.presence || "No email" %></div>
+              <% end %>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="mt-3 text-sm text-zinc-400">No shared users found in the latest snapshot for this library.</p>
+        <% end %>
+      </div>
+
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+        <h2 class="text-lg font-semibold text-white">Type Mix</h2>
+        <div class="mt-4 grid gap-3">
+          <% @type_stats.each do |stat| %>
+            <div>
+              <div class="flex items-baseline justify-between gap-3 text-sm">
+                <span class="font-medium text-white"><%= stat[:label] %></span>
+                <span class="text-zinc-400"><%= number_with_delimiter(stat[:plays]) %></span>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-zinc-900">
+                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_type_plays) %>%"></div>
+              </div>
+            </div>
+          <% end %>
+          <% if @type_stats.empty? %>
+            <p class="text-sm text-zinc-400">No stream history for this library yet.</p>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+        <h2 class="text-lg font-semibold text-white">Top Users</h2>
+        <div class="mt-4 grid gap-3">
+          <% @top_users.each do |stat| %>
+            <%= link_to user_path(stat[:account_id]), class: "block rounded-md border border-zinc-800 bg-zinc-900 p-3 transition hover:border-zinc-500" do %>
+              <div class="flex items-baseline justify-between gap-3 text-sm">
+                <span class="font-medium text-white"><%= stat[:label] %></span>
+                <span class="text-zinc-400"><%= number_with_delimiter(stat[:plays]) %> plays</span>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-zinc-950">
+                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_user_plays) %>%"></div>
+              </div>
+              <p class="mt-1 text-xs text-zinc-500">Latest <%= stat[:latest] ? l(stat[:latest], format: :short) : "unknown" %></p>
+            <% end %>
+          <% end %>
+          <% if @top_users.empty? %>
+            <p class="text-sm text-zinc-400">No user history for this library yet.</p>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">
+        <div class="border-b border-zinc-800 p-5">
+          <h2 class="text-lg font-semibold text-white">Recent Streams</h2>
+        </div>
+        <% if @recent_events.empty? %>
+          <p class="p-5 text-sm text-zinc-400">No recent stream history for this library.</p>
+        <% else %>
+          <table class="min-w-full divide-y divide-zinc-800 text-left text-sm">
+            <thead class="bg-zinc-900/80 text-xs uppercase tracking-wide text-zinc-400">
+              <tr>
+                <th class="px-4 py-3 font-semibold">When</th>
+                <th class="px-4 py-3 font-semibold">User</th>
+                <th class="px-4 py-3 font-semibold">Title</th>
+                <th class="px-4 py-3 font-semibold">Type</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-800">
+              <% @recent_events.each do |event| %>
+                <tr>
+                  <td class="whitespace-nowrap px-4 py-3 text-zinc-300"><%= l(event.viewed_at, format: :long) %></td>
+                  <td class="px-4 py-3 text-zinc-300"><%= @top_users.find { |user| user[:account_id].to_s == event.account_id.to_s }&.fetch(:label) || "Account #{event.account_id}" %></td>
+                  <td class="px-4 py-3 font-medium text-white"><%= event.label %></td>
+                  <td class="px-4 py-3 text-zinc-400"><%= event.media_type.presence || "unknown" %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+</div>
