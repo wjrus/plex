@@ -4,7 +4,11 @@ class NowPlayingControllerTest < ActionDispatch::IntegrationTest
   setup do
     @original_admin_users = ENV["ADMIN_USERS"]
     @original_admin_user = ENV["ADMIN_USER"]
+    @original_plex_token = ENV["PLEX_TOKEN"]
+    @original_plex_server_base_url = ENV["PLEX_SERVER_BASE_URL"]
     ENV["ADMIN_USERS"] = "admin@example.com"
+    ENV["PLEX_TOKEN"] = "token"
+    ENV["PLEX_SERVER_BASE_URL"] = "http://plex.example"
     ENV.delete("ADMIN_USER")
     Rails.cache.clear
     OmniAuth.config.test_mode = true
@@ -14,6 +18,8 @@ class NowPlayingControllerTest < ActionDispatch::IntegrationTest
   teardown do
     ENV["ADMIN_USERS"] = @original_admin_users
     ENV["ADMIN_USER"] = @original_admin_user
+    ENV["PLEX_TOKEN"] = @original_plex_token
+    ENV["PLEX_SERVER_BASE_URL"] = @original_plex_server_base_url
     Rails.cache.clear
     OmniAuth.config.mock_auth[:google_oauth2] = nil
     OmniAuth.config.test_mode = false
@@ -30,6 +36,7 @@ class NowPlayingControllerTest < ActionDispatch::IntegrationTest
             library_section_title: "TV Shows",
             duration: "1000",
             view_offset: "500",
+            grandparent_thumb: "/library/metadata/1/thumb/123",
             user: { title: "Viewer" },
             player: { title: "Apple TV", platform: "tvOS", state: "playing" },
             session: { id: "session-one" }
@@ -49,6 +56,7 @@ class NowPlayingControllerTest < ActionDispatch::IntegrationTest
       assert_select "p", "Viewer"
       assert_select "dd", text: "Apple TV · tvOS"
       assert_select "p", text: "50% complete"
+      assert_select "img[src*='/library/metadata/1/thumb/123']"
     ensure
       Plex::Client.define_singleton_method(:from_env) { original_from_env.call }
     end

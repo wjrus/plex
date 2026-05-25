@@ -8,6 +8,7 @@ class PlexStreamEventTest < ActiveSupport::TestCase
       viewed_at: "1779649200",
       type: "movie",
       title: "Feature",
+      thumb: "/library/metadata/1/thumb/123",
       library_section_title: "Movies",
       duration: "1000",
       view_offset: "800"
@@ -21,6 +22,7 @@ class PlexStreamEventTest < ActiveSupport::TestCase
     event = PlexStreamEvent.find_by!(machine_identifier: "machine-one", account_id: "42")
     assert_equal "Feature Updated", event.title
     assert_equal "Movies", event.library_title
+    assert_equal "/library/metadata/1/thumb/123", event.cover_path
   end
 
   test "deduplicates streams inside one upsert batch" do

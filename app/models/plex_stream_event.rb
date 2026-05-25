@@ -22,6 +22,7 @@ class PlexStreamEvent < ApplicationRecord
         media_type: stream[:type].presence,
         title: stream[:title].presence,
         full_title: stream_title(stream),
+        cover_path: stream_cover_path(stream),
         library_title: stream[:library_section_title].presence,
         duration: stream[:duration].presence&.to_i,
         view_offset: stream[:view_offset].presence&.to_i,
@@ -58,5 +59,12 @@ class PlexStreamEvent < ApplicationRecord
       stream[:guid].presence ||
       stream_title(stream).presence ||
       "unknown"
+  end
+
+  def self.stream_cover_path(stream)
+    stream[:grandparent_thumb].presence ||
+      stream[:thumb].presence ||
+      stream[:parent_thumb].presence ||
+      stream[:art].presence
   end
 end

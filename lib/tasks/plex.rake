@@ -75,21 +75,30 @@ namespace :plex do
       raise(Plex::ConfigurationError, "Missing PLEX_MACHINE_IDENTIFIER in .env")
     page_size = ENV.fetch("PLEX_HISTORY_PAGE_SIZE", "1000").to_i.clamp(1, 2_000)
     max_pages = history_max_pages
+    start_page = ENV.fetch("PLEX_HISTORY_START_PAGE", "1").to_i.clamp(1, 10_000)
     viewed_after = history_viewed_after
     client = Plex::Client.from_env
-    page = 0
+    page = start_page - 1
+    pages_scanned = 0
     total_rows = 0
     total_saved = 0
+    stopped_on_error = false
     started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
     puts "Backfilling Plex playback history for #{machine_identifier}..."
     puts "History scan: page_size=#{page_size} max_pages=#{max_pages || 'all'}"
+    puts "Starting page: #{start_page}"
     puts "History window: #{viewed_after ? "#{ENV['PLEX_HISTORY_DAYS']}d" : 'all'}"
 
     loop do
       break if max_pages && page >= max_pages
 
-      history = client.playback_history(size: page_size, offset: page * page_size)
+      history = fetch_history_page_with_retries(client, page: page, page_size: page_size)
+      unless history
+        stopped_on_error = true
+        puts "Stopped before page #{page + 1}. Rerun with PLEX_HISTORY_START_PAGE=#{page + 1} to resume."
+        break
+      end
       if history.empty?
         puts "History page #{page + 1} retrieved: 0 rows (empty page)"
         break
@@ -101,6 +110,7 @@ namespace :plex do
       saved_count = PlexStreamEvent.where(machine_identifier: machine_identifier).count - before_count
       total_rows += history.size
       total_saved += saved_count
+      pages_scanned += 1
 
       stop_reason = if viewed_after && history_older_than_window?(history, viewed_after)
         "reached history window"
@@ -121,8 +131,8 @@ namespace :plex do
     end
 
     elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
-    puts "Backfill complete"
-    puts "Pages: #{(page + 1).to_fs(:delimited)}"
+    puts stopped_on_error ? "Backfill stopped" : "Backfill complete"
+    puts "Pages scanned: #{pages_scanned.to_fs(:delimited)}"
     puts "Rows scanned: #{total_rows.to_fs(:delimited)}"
     puts "New events saved: #{total_saved.to_fs(:delimited)}"
     puts "Elapsed: #{elapsed.round(1)}s"
@@ -146,5 +156,25 @@ namespace :plex do
   def history_older_than_window?(history, viewed_after)
     oldest_viewed_at = history.filter_map { |stream| stream[:viewed_at].presence&.to_i }.min
     oldest_viewed_at && oldest_viewed_at < viewed_after.to_i
+  end
+
+  def fetch_history_page_with_retries(client, page:, page_size:)
+    retries = ENV.fetch("PLEX_HISTORY_RETRIES", "3").to_i.clamp(0, 10)
+    attempt = 0
+
+    begin
+      client.playback_history(size: page_size, offset: page * page_size)
+    rescue Plex::Client::Error => error
+      attempt += 1
+      Rails.logger.warn("[plex.backfill_history] page=#{page + 1} attempt=#{attempt} error=#{error.message}")
+      if attempt <= retries
+        sleep attempt * 2
+        puts "History page #{page + 1} failed: #{error.message}; retry #{attempt}/#{retries}"
+        retry
+      end
+
+      puts "History page #{page + 1} failed after #{attempt} attempts: #{error.message}"
+      nil
+    end
   end
 end

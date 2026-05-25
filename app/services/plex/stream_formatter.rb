@@ -28,5 +28,12 @@ module Plex
 
       ((offset.to_f / duration) * 100).clamp(0, 100).round
     end
+
+    def cover_path(stream)
+      stream[:grandparent_thumb].presence ||
+        stream[:thumb].presence ||
+        stream[:parent_thumb].presence ||
+        stream[:art].presence
+    end
   end
 end

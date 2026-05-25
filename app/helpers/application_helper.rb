@@ -1,4 +1,21 @@
 module ApplicationHelper
+  def plex_image_url(path)
+    path = path.to_s
+    return if path.blank?
+
+    base_url = ENV["PLEX_SERVER_BASE_URL"].to_s.delete_suffix("/")
+    token = ENV["PLEX_TOKEN"].to_s
+    return if base_url.blank? || token.blank?
+
+    uri = URI(path.start_with?("http") ? path : "#{base_url}#{path.start_with?("/") ? path : "/#{path}"}")
+    query = URI.decode_www_form(uri.query.to_s)
+    query << [ "X-Plex-Token", token ] unless query.any? { |key, _value| key == "X-Plex-Token" }
+    uri.query = URI.encode_www_form(query)
+    uri.to_s
+  rescue URI::InvalidURIError
+    nil
+  end
+
   def plex_timestamp(value)
     return "Never" if value.blank?
 
