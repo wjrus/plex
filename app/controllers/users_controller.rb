@@ -42,6 +42,8 @@ class UsersController < ApplicationController
     @snapshot = ShareSnapshot.latest_for(@machine_identifier)
     @report = @snapshot&.to_report
     @libraries = @report&.libraries || []
+    @active_library_titles = @libraries.map(&:title)
+    @active_library_ids = @libraries.flat_map { |library| [ library.id, library.key ] }.compact.map(&:to_s)
     @all_users = users_with_local_stream_accounts(@report&.users || [], include_suppressed: true)
     @notes_by_user_id = PlexUserNote.for_users(@all_users)
     @user = @all_users.find { |user| user.id.to_s == params[:plex_user_id].to_s }

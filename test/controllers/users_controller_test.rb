@@ -124,6 +124,16 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
       library_title: "TV Shows",
       media_type: "episode"
     )
+    PlexStreamEvent.create!(
+      machine_identifier: "machine-one",
+      account_id: "owner-one",
+      viewed_at: Time.zone.local(2026, 5, 24, 14, 0, 0),
+      full_title: "Columbo - Playback",
+      library_title: "Movies",
+      media_type: "movie",
+      duration: 1000,
+      view_offset: 950
+    )
 
     get users_path(q: "owner")
 
@@ -138,6 +148,8 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", "owner"
     assert_select "dd", text: "Local history only"
+    assert_select "dd", text: "1"
+    assert_select "span", text: "movie"
     assert_select "p", text: /not a shared-library user/
     assert_select "td", text: "Columbo - Murder by the Book"
   end
