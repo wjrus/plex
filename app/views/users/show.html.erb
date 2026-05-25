@@ -230,6 +230,64 @@
       </dialog>
     </div>
 
+    <section class="grid gap-4 xl:grid-cols-3">
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+        <h2 class="text-lg font-semibold text-white">Monthly Activity</h2>
+        <div class="mt-4 grid gap-3">
+          <% @stream_monthly_stats.each do |stat| %>
+            <div class="grid grid-cols-[5.5rem_minmax(0,1fr)_3.5rem] items-center gap-3 text-sm">
+              <span class="text-zinc-400"><%= stat[:label] %></span>
+              <div class="h-2 overflow-hidden rounded-full bg-zinc-900">
+                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_stream_monthly_plays) %>%"></div>
+              </div>
+              <span class="text-right text-zinc-300"><%= number_with_delimiter(stat[:plays]) %></span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+        <h2 class="text-lg font-semibold text-white">Type Mix</h2>
+        <div class="mt-4 grid gap-3">
+          <% @stream_type_stats.each do |stat| %>
+            <div>
+              <div class="flex items-baseline justify-between gap-3 text-sm">
+                <span class="font-medium text-white"><%= stat[:label] %></span>
+                <span class="text-zinc-400"><%= number_with_delimiter(stat[:plays]) %></span>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-zinc-900">
+                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_stream_type_plays) %>%"></div>
+              </div>
+            </div>
+          <% end %>
+          <% if @stream_type_stats.empty? %>
+            <p class="text-sm text-zinc-400">No typed history yet.</p>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+        <h2 class="text-lg font-semibold text-white">Top Titles</h2>
+        <div class="mt-4 grid gap-3">
+          <% @stream_top_titles.each do |stat| %>
+            <div>
+              <div class="flex items-baseline justify-between gap-3 text-sm">
+                <span class="min-w-0 truncate font-medium text-white"><%= stat[:label] %></span>
+                <span class="shrink-0 text-zinc-400"><%= number_with_delimiter(stat[:plays]) %></span>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-zinc-900">
+                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_stream_title_plays) %>%"></div>
+              </div>
+              <p class="mt-1 text-xs text-zinc-500">Latest <%= stat[:latest] ? l(stat[:latest], format: :short) : "unknown" %></p>
+            </div>
+          <% end %>
+          <% if @stream_top_titles.empty? %>
+            <p class="text-sm text-zinc-400">No title history yet.</p>
+          <% end %>
+        </div>
+      </div>
+    </section>
+
     <%= render "stream_history" %>
 
     <section class="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">

@@ -60,7 +60,12 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", "Viewer"
     assert_select "h2", "Library Access"
+    assert_select "h2", "Monthly Activity"
+    assert_select "h2", "Type Mix"
+    assert_select "h2", "Top Titles"
     assert_select "h2", "Stream History"
+    assert_select "input[name='stream_q']"
+    assert_select "select[name='stream_type']"
     assert_select "td", text: "Taskmaster - The Noise That Blue Makes"
     assert_select "th", text: "Player"
     assert_select "th", text: "IP Address"
@@ -191,6 +196,39 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "td", text: "History Item 26"
     assert_select "td", text: "History Item 1", count: 0
     assert_select "a[data-turbo-frame='stream_history']", text: "Previous"
+  end
+
+  test "filters stream history and exports filtered csv" do
+    PlexStreamEvent.create!(
+      machine_identifier: "machine-one",
+      account_id: "42",
+      viewed_at: Time.zone.local(2026, 5, 24, 12, 0, 0),
+      full_title: "Movie Match",
+      library_title: "Movies",
+      media_type: "movie"
+    )
+    PlexStreamEvent.create!(
+      machine_identifier: "machine-one",
+      account_id: "42",
+      viewed_at: Time.zone.local(2026, 5, 23, 12, 0, 0),
+      full_title: "Episode Miss",
+      library_title: "TV Shows",
+      media_type: "episode"
+    )
+
+    get user_path("42", stream_q: "match", stream_type: "movie")
+
+    assert_response :success
+    assert_select "td", text: "Movie Match"
+    assert_select "td", text: "Episode Miss", count: 0
+    assert_select "p", text: /Showing 1-1 of 1/
+    assert_select "a[href*='stream_q=match'][href*='format=csv']", text: "Export CSV"
+
+    get user_path("42", stream_q: "match", stream_type: "movie", format: :csv)
+
+    assert_response :success
+    assert_includes @response.body, "Movie Match"
+    assert_not_includes @response.body, "Episode Miss"
   end
 
   test "filters users by search and notes" do

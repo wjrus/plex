@@ -48,6 +48,7 @@ class UsersController < ApplicationController
     @note = PlexUserNote.find_by(plex_user_id: @user.id.to_s)
     load_stream_history
     load_user_stream_stats
+    load_user_stream_charts
     @audit_logs = ShareAuditLog.where(plex_user_id: @user.id.to_s).recent.limit(50)
     respond_to do |format|
       format.html
@@ -110,7 +111,10 @@ class UsersController < ApplicationController
   def load_stream_history
     @stream_per_page = 25
     @stream_page = params.fetch(:stream_page, "1").to_i.clamp(1, 100_000)
-    scope = PlexStreamEvent.where(machine_identifier: @machine_identifier, account_id: @user.id.to_s).recent
+    @stream_filter_params = stream_filter_params
+    @stream_type_options = stream_scope.where.not(media_type: [ nil, "" ]).distinct.order(:media_type).pluck(:media_type)
+    @stream_filters_active = @stream_filter_params.to_h.values.any?(&:present?)
+    scope = filtered_stream_scope.recent
     @stream_events_count = scope.count
     @stream_total_pages = [ (@stream_events_count.to_f / @stream_per_page).ceil, 1 ].max
     @stream_page = [ @stream_page, @stream_total_pages ].min
@@ -137,6 +141,75 @@ class UsersController < ApplicationController
 
   def stream_scope
     PlexStreamEvent.where(machine_identifier: @machine_identifier, account_id: @user.id.to_s)
+  end
+
+  def filtered_stream_scope
+    scope = stream_scope
+    query = @stream_filter_params[:stream_q].to_s.strip.downcase
+    if query.present?
+      escaped_query = ActiveRecord::Base.sanitize_sql_like(query)
+      scope = scope.where(
+        "LOWER(COALESCE(full_title, '') || ' ' || COALESCE(title, '') || ' ' || COALESCE(library_title, '') || ' ' || COALESCE(rating_key, '')) LIKE ?",
+        "%#{escaped_query}%"
+      )
+    end
+    scope = scope.where(media_type: @stream_filter_params[:stream_type]) if @stream_filter_params[:stream_type].present?
+    scope = scope.where("viewed_at >= ?", parsed_stream_date(@stream_filter_params[:stream_from])&.beginning_of_day) if parsed_stream_date(@stream_filter_params[:stream_from])
+    scope = scope.where("viewed_at <= ?", parsed_stream_date(@stream_filter_params[:stream_to])&.end_of_day) if parsed_stream_date(@stream_filter_params[:stream_to])
+    scope
+  end
+
+  def stream_filter_params
+    params.permit(:stream_q, :stream_type, :stream_from, :stream_to)
+  end
+
+  def stream_query_params(extra = {})
+    @stream_filter_params.to_h.merge(extra).compact_blank
+  end
+  helper_method :stream_query_params
+
+  def parsed_stream_date(value)
+    return if value.blank?
+
+    Date.iso8601(value.to_s)
+  rescue ArgumentError
+    nil
+  end
+
+  def load_user_stream_charts
+    scope = stream_scope
+    @stream_monthly_stats = user_monthly_stats(scope)
+    @stream_type_stats = scope
+      .where.not(media_type: [ nil, "" ])
+      .group(:media_type)
+      .order(Arel.sql("COUNT(*) DESC"))
+      .pluck(:media_type, Arel.sql("COUNT(*)"))
+      .map { |media_type, plays| { label: media_type, plays: plays } }
+    @stream_top_titles = scope
+      .where.not(full_title: [ nil, "" ])
+      .group(:full_title)
+      .order(Arel.sql("COUNT(*) DESC"))
+      .limit(8)
+      .pluck(:full_title, Arel.sql("COUNT(*)"), Arel.sql("MAX(viewed_at)"))
+      .map { |title, plays, latest| { label: title, plays: plays, latest: latest } }
+    @max_stream_monthly_plays = @stream_monthly_stats.map { |stat| stat[:plays] }.max.to_i
+    @max_stream_type_plays = @stream_type_stats.map { |stat| stat[:plays] }.max.to_i
+    @max_stream_title_plays = @stream_top_titles.map { |stat| stat[:plays] }.max.to_i
+  end
+
+  def user_monthly_stats(scope)
+    start_time = 11.months.ago.beginning_of_month
+    counts_by_month = scope
+      .where("viewed_at >= ?", start_time)
+      .pluck(:viewed_at)
+      .each_with_object(Hash.new(0)) do |viewed_at, counts|
+        counts[viewed_at.beginning_of_month.to_date] += 1
+      end
+
+    11.downto(0).map do |months_ago|
+      month = months_ago.months.ago.beginning_of_month
+      { label: month.strftime("%b %Y"), plays: counts_by_month.fetch(month.to_date, 0) }
+    end
   end
 
   def top_group_value(scope, column)
@@ -310,7 +383,7 @@ class UsersController < ApplicationController
   def stream_history_csv
     CSV.generate(headers: true) do |csv|
       csv << [ "viewed_at", "title", "type", "library", "player", "ip_address", "rating_key" ]
-      stream_scope.recent.each do |event|
+      filtered_stream_scope.recent.each do |event|
         csv << [
           event.viewed_at.iso8601,
           event.label,
