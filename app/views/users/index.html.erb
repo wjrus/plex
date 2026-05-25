@@ -128,7 +128,7 @@
               tabindex="0"
               role="link"
               aria-label="Open <%= user.label %>">
-              <td class="px-4 py-3 font-medium text-white"><%= user.title.presence || user.label %></td>
+              <td class="px-4 py-3 font-medium text-white"><%= user.label %></td>
               <td class="px-4 py-3 text-zinc-300"><%= user.email.presence || "unknown" %></td>
               <td class="px-4 py-3">
                 <% if suppressed_user?(user) %>

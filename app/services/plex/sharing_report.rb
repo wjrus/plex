@@ -27,7 +27,7 @@ module Plex
       :libraries
     ) do
       def label
-        title.presence || username.presence || email.presence || id.to_s
+        username.presence || title.presence || email.presence || id.to_s
       end
     end
     Library = Data.define(:id, :key, :title, :type)

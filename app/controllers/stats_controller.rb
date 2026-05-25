@@ -77,8 +77,8 @@ class StatsController < ApplicationController
     end
     if ENV["PLEX_OWNER_ACCOUNT_ID"].present?
       labels[ENV["PLEX_OWNER_ACCOUNT_ID"].to_s] =
-        ENV["PLEX_OWNER_NAME"].presence ||
         ENV["PLEX_OWNER_USERNAME"].presence ||
+        ENV["PLEX_OWNER_NAME"].presence ||
         ENV["PLEX_OWNER_EMAIL"].presence ||
         "Server owner"
     end

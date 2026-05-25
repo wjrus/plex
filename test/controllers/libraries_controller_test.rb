@@ -34,7 +34,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", "Movies"
     assert_select "h2", "Shared Users"
-    assert_select "div", text: "Viewer"
+    assert_select "div", text: "viewer"
     assert_select "h2", "Top Users"
     assert_select "td", text: "Feature"
   end

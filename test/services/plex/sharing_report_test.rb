@@ -149,7 +149,7 @@ module Plex
         user = report.users.first
 
         assert_predicate user, :pending
-        assert_equal "Pending User", user.label
+        assert_equal "pending-user", user.label
         assert_equal "1704307031", user.invited_at
         assert_equal [ "Movies", "Shows" ], user.libraries.map(&:title)
       end

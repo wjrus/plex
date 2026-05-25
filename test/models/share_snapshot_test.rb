@@ -10,7 +10,7 @@ class ShareSnapshotTest < ActiveSupport::TestCase
 
     assert_equal "Local Plex", report.server[:name]
     assert_equal "Movies", report.libraries.first.title
-    assert_equal "Viewer", report.users.first.label
+    assert_equal "viewer", report.users.first.label
     assert_equal "99", report.users.first.share_id
     assert_equal 1556281940, report.users.first.last_seen_at
     assert_equal 1556281941, report.users.first.last_streamed_at

@@ -69,7 +69,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     get user_path("42")
 
     assert_response :success
-    assert_select "h1", "Viewer"
+    assert_select "h1", "viewer"
     assert_select "h2", "Library Access"
     assert_select "h2", "Monthly Activity"
     assert_select "h2", "Type Mix"
@@ -125,10 +125,10 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
       media_type: "episode"
     )
 
-    get users_path(q: "server owner")
+    get users_path(q: "owner")
 
     assert_response :success
-    assert_select "td", text: "Server Owner"
+    assert_select "td", text: "owner"
     assert_select "td", text: "owner@example.com"
     assert_select "span", text: "Local history"
     assert_select "p", text: "1 user shown"
@@ -136,7 +136,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     get user_path("owner-one")
 
     assert_response :success
-    assert_select "h1", "Server Owner"
+    assert_select "h1", "owner"
     assert_select "dd", text: "Local history only"
     assert_select "p", text: /not a shared-library user/
     assert_select "td", text: "Columbo - Murder by the Book"
@@ -290,7 +290,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h2", "Pending Invites"
-    assert_select "p", text: /Pending Friend/
+    assert_select "p", text: /pending/
     assert_select "a", text: "View pending"
   end
 
@@ -300,7 +300,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes @response.media_type, "text/csv"
     assert_includes @response.body, "name,username,email,status"
-    assert_includes @response.body, "Viewer,viewer,viewer@example.com,accepted"
+    assert_includes @response.body, "viewer,viewer,viewer@example.com,accepted"
   end
 
   test "admin can save local notes for a Plex user" do

@@ -302,7 +302,7 @@ class SharesController < ApplicationController
     {
       id: user["id"],
       share_id: user["share_id"],
-      label: user["title"].presence || user["username"].presence || user["email"],
+      label: user["username"].presence || user["title"].presence || user["email"],
       email: user["email"]
     }
   end

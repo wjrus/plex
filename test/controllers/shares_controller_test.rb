@@ -155,7 +155,7 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_empty ShareSnapshot.latest_for("machine-one").users
     log = ShareAuditLog.recent.first
     assert_equal "library_access_removed", log.action
-    assert_equal "Viewer", log.target_label
+    assert_equal "viewer", log.target_label
     assert_equal [ "Movies" ], log.libraries_removed
   end
 
@@ -263,7 +263,7 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_empty ShareSnapshot.latest_for("machine-one").users
     log = ShareAuditLog.recent.first
     assert_equal "pending_invite_canceled", log.action
-    assert_equal "Pending User", log.target_label
+    assert_equal "pending", log.target_label
   end
 
   private
