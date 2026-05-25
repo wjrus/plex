@@ -41,6 +41,7 @@
       <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
         <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Local Plays</p>
         <p class="mt-2 text-lg font-semibold text-white"><%= number_with_delimiter(@stream_stats[:total]) %></p>
+        <p class="mt-1 text-xs text-zinc-500"><%= @stats_period_label %></p>
       </div>
       <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
         <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Last Streamed</p>
@@ -210,8 +211,7 @@
           </div>
           <dl class="mt-4 grid gap-2 text-sm text-zinc-400">
             <div><dt class="inline text-zinc-500">Plays:</dt> <dd class="inline"><%= number_with_delimiter(@stream_stats[:total]) %></dd></div>
-            <div><dt class="inline text-zinc-500">Last 30 days:</dt> <dd class="inline"><%= number_with_delimiter(@stream_stats[:last_30_days]) %></dd></div>
-            <div><dt class="inline text-zinc-500">Last 90 days:</dt> <dd class="inline"><%= number_with_delimiter(@stream_stats[:last_90_days]) %></dd></div>
+            <div><dt class="inline text-zinc-500">Period:</dt> <dd class="inline"><%= @stats_period_label %></dd></div>
             <div><dt class="inline text-zinc-500">First seen:</dt> <dd class="inline"><%= @stream_stats[:first] ? l(@stream_stats[:first], format: :long) : "Unknown" %></dd></div>
             <div><dt class="inline text-zinc-500">Last seen:</dt> <dd class="inline"><%= @stream_stats[:last] ? l(@stream_stats[:last], format: :long) : "Unknown" %></dd></div>
             <div><dt class="inline text-zinc-500">Top type:</dt> <dd class="inline"><%= @stream_stats[:top_type] %></dd></div>
@@ -272,15 +272,28 @@
       </dialog>
     </div>
 
+    <nav class="flex flex-wrap gap-2" aria-label="User stats period">
+      <% @stats_period_options.each do |period, label| %>
+        <% active = period == @stats_period %>
+        <%= link_to label,
+          user_path(@user.id, request.query_parameters.merge(period: period).except(:stream_page)),
+          class: [
+            "inline-flex cursor-pointer items-center justify-center rounded-md border px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-zinc-950",
+            active ? "border-cyan-300 bg-cyan-300 text-zinc-950" : "border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:bg-zinc-900 hover:text-white"
+          ].join(" "),
+          aria: { current: active ? "page" : nil } %>
+      <% end %>
+    </nav>
+
     <section class="grid gap-4 xl:grid-cols-2 2xl:grid-cols-4">
       <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
-        <h2 class="text-lg font-semibold text-white">Monthly Activity</h2>
+        <h2 class="text-lg font-semibold text-white">Activity</h2>
         <div class="mt-4 grid gap-3">
-          <% @stream_monthly_stats.each do |stat| %>
+          <% @stream_activity_stats.each do |stat| %>
             <div class="grid grid-cols-[5.5rem_minmax(0,1fr)_3.5rem] items-center gap-3 text-sm">
               <span class="text-zinc-400"><%= stat[:label] %></span>
               <div class="h-2 overflow-hidden rounded-full bg-zinc-900">
-                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_stream_monthly_plays) %>%"></div>
+                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_stream_activity_plays) %>%"></div>
               </div>
               <span class="text-right text-zinc-300"><%= number_with_delimiter(stat[:plays]) %></span>
             </div>

@@ -4,6 +4,12 @@ class UsersController < ApplicationController
 
   SORT_COLUMNS = %w[name last_streamed].freeze
   SORT_DIRECTIONS = %w[asc desc].freeze
+  STATS_PERIOD_OPTIONS = {
+    "7d" => { label: "7 days", start: -> { 6.days.ago.beginning_of_day } },
+    "30d" => { label: "30 days", start: -> { 29.days.ago.beginning_of_day } },
+    "1y" => { label: "Past year", start: -> { 11.months.ago.beginning_of_month } },
+    "all" => { label: "All time", start: -> { nil } }
+  }.freeze
   helper_method :local_history_user?, :suppressed_user?
 
   def index
@@ -50,6 +56,7 @@ class UsersController < ApplicationController
     @user ||= cache_pending_invite_for(params[:plex_user_id])
     raise ActiveRecord::RecordNotFound, "Unknown Plex user" unless @user
 
+    load_stats_period
     @note = PlexUserNote.find_by(plex_user_id: @user.id.to_s)
     load_stream_history
     load_user_stream_stats
@@ -236,11 +243,16 @@ class UsersController < ApplicationController
       total: scope.count,
       first: scope.minimum(:viewed_at),
       last: scope.maximum(:viewed_at),
-      last_30_days: scope.where("viewed_at >= ?", 30.days.ago).count,
-      last_90_days: scope.where("viewed_at >= ?", 90.days.ago).count,
       top_type: top_group_value(scope, :media_type),
       top_library: top_group_value(scope, :library_title)
     }
+  end
+
+  def load_stats_period
+    @stats_period = params[:period].presence_in(STATS_PERIOD_OPTIONS.keys) || "7d"
+    @stats_period_options = STATS_PERIOD_OPTIONS.transform_values { |option| option[:label] }
+    @stats_period_label = @stats_period_options.fetch(@stats_period)
+    @stats_period_start = STATS_PERIOD_OPTIONS.fetch(@stats_period)[:start].call
   end
 
   def stream_scope
@@ -248,7 +260,8 @@ class UsersController < ApplicationController
   end
 
   def completed_stream_scope
-    PlexStreamEvent.completed_video_play_scope(stream_scope, library_titles: @active_library_titles, library_ids: @active_library_ids)
+    scope = PlexStreamEvent.completed_video_play_scope(stream_scope, library_titles: @active_library_titles, library_ids: @active_library_ids)
+    @stats_period_start ? scope.where("viewed_at >= ?", @stats_period_start) : scope
   end
 
   def filtered_stream_scope
@@ -286,7 +299,7 @@ class UsersController < ApplicationController
 
   def load_user_stream_charts
     scope = completed_stream_scope
-    @stream_monthly_stats = user_monthly_stats(scope)
+    @stream_activity_stats = user_activity_stats(scope)
     @stream_type_stats = scope
       .where.not(media_type: [ nil, "" ])
       .group(:media_type)
@@ -295,7 +308,7 @@ class UsersController < ApplicationController
       .map { |media_type, plays| { label: media_type, plays: plays } }
     @stream_top_series = aggregate_title_stats(scope.where(media_type: "episode"), limit: 8)
     @stream_top_movies = aggregate_title_stats(scope.where(media_type: "movie"), limit: 8)
-    @max_stream_monthly_plays = @stream_monthly_stats.map { |stat| stat[:plays] }.max.to_i
+    @max_stream_activity_plays = @stream_activity_stats.map { |stat| stat[:plays] }.max.to_i
     @max_stream_type_plays = @stream_type_stats.map { |stat| stat[:plays] }.max.to_i
     @max_stream_series_plays = @stream_top_series.map { |stat| stat[:plays] }.max.to_i
     @max_stream_movie_plays = @stream_top_movies.map { |stat| stat[:plays] }.max.to_i
@@ -309,17 +322,45 @@ class UsersController < ApplicationController
       .limit(12)
   end
 
+  def user_activity_stats(scope)
+    if @stats_period.in?(%w[7d 30d])
+      user_daily_stats(scope)
+    else
+      user_monthly_stats(scope)
+    end
+  end
+
+  def user_daily_stats(scope)
+    days = @stats_period == "30d" ? 30 : 7
+    counts_by_day = scope
+      .pluck(:viewed_at)
+      .each_with_object(Hash.new(0)) do |viewed_at, counts|
+        counts[viewed_at.to_date] += 1
+      end
+
+    (days - 1).downto(0).map do |days_ago|
+      day = days_ago.days.ago.to_date
+      { label: day.strftime("%b %-d"), plays: counts_by_day.fetch(day, 0) }
+    end
+  end
+
   def user_monthly_stats(scope)
-    start_time = 11.months.ago.beginning_of_month
+    start_time = @stats_period_start || scope.minimum(:viewed_at)&.beginning_of_month || Time.current.beginning_of_month
+    end_time = Time.current.beginning_of_month
     counts_by_month = scope
-      .where("viewed_at >= ?", start_time)
       .pluck(:viewed_at)
       .each_with_object(Hash.new(0)) do |viewed_at, counts|
         counts[viewed_at.beginning_of_month.to_date] += 1
       end
 
-    11.downto(0).map do |months_ago|
-      month = months_ago.months.ago.beginning_of_month
+    months = []
+    cursor = start_time.beginning_of_month
+    while cursor <= end_time
+      months << cursor
+      cursor += 1.month
+    end
+
+    months.map do |month|
       { label: month.strftime("%b %Y"), plays: counts_by_month.fetch(month.to_date, 0) }
     end
   end

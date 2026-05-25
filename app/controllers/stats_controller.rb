@@ -1,18 +1,29 @@
 class StatsController < ApplicationController
+  PERIOD_OPTIONS = {
+    "7d" => { label: "7 days", start: -> { 6.days.ago.beginning_of_day } },
+    "30d" => { label: "30 days", start: -> { 29.days.ago.beginning_of_day } },
+    "1y" => { label: "Past year", start: -> { 11.months.ago.beginning_of_month } },
+    "all" => { label: "All time", start: -> { nil } }
+  }.freeze
+
   def index
     @machine_identifier = required_machine_identifier
+    @stats_period = params[:period].presence_in(PERIOD_OPTIONS.keys) || "7d"
+    @stats_period_options = PERIOD_OPTIONS.transform_values { |option| option[:label] }
+    @stats_period_label = @stats_period_options.fetch(@stats_period)
+    @stats_period_start = PERIOD_OPTIONS.fetch(@stats_period)[:start].call
     @active_libraries = active_libraries
     @active_library_titles = @active_libraries.map(&:title)
     @active_library_ids = @active_libraries.flat_map { |library| [ library.id, library.key ] }.compact.map(&:to_s)
     @library_labels_by_identifier = library_labels_by_identifier
-    @history_summary = PlexStreamEvent.history_summary(@machine_identifier)
+    @period_summary = period_summary
     @library_stats = library_stats
     @type_stats = type_stats
-    @monthly_stats = monthly_stats
+    @activity_stats = activity_stats
     @top_users = top_users
     @max_library_plays = @library_stats.map { |stat| stat[:plays] }.max.to_i
     @max_type_plays = @type_stats.map { |stat| stat[:plays] }.max.to_i
-    @max_monthly_plays = @monthly_stats.map { |stat| stat[:plays] }.max.to_i
+    @max_activity_plays = @activity_stats.map { |stat| stat[:plays] }.max.to_i
     @max_user_plays = @top_users.map { |stat| stat[:plays] }.max.to_i
   rescue Plex::ConfigurationError => error
     @configuration_error = error.message
@@ -21,6 +32,15 @@ class StatsController < ApplicationController
   end
 
   private
+
+  def period_summary
+    scope = completed_event_scope
+    {
+      completed_plays: scope.count,
+      oldest: scope.minimum(:viewed_at),
+      newest: scope.maximum(:viewed_at)
+    }
+  end
 
   def library_stats
     completed_event_scope
@@ -44,17 +64,46 @@ class StatsController < ApplicationController
       end
   end
 
-  def monthly_stats
-    start_time = 11.months.ago.beginning_of_month
-    counts_by_month = completed_event_scope
-      .where("viewed_at >= ?", start_time)
+  def activity_stats
+    if @stats_period.in?(%w[7d 30d])
+      daily_activity_stats
+    else
+      monthly_activity_stats
+    end
+  end
+
+  def daily_activity_stats
+    days = @stats_period == "30d" ? 30 : 7
+    counts_by_day = completed_event_scope
+      .pluck(:viewed_at)
+      .each_with_object(Hash.new(0)) do |viewed_at, counts|
+        counts[viewed_at.to_date] += 1
+      end
+
+    (days - 1).downto(0).map do |days_ago|
+      day = days_ago.days.ago.to_date
+      { label: day.strftime("%b %-d"), plays: counts_by_day.fetch(day, 0) }
+    end
+  end
+
+  def monthly_activity_stats
+    scope = completed_event_scope
+    start_time = @stats_period_start || scope.minimum(:viewed_at)&.beginning_of_month || Time.current.beginning_of_month
+    end_time = Time.current.beginning_of_month
+    counts_by_month = scope
       .pluck(:viewed_at)
       .each_with_object(Hash.new(0)) do |viewed_at, counts|
         counts[viewed_at.beginning_of_month.to_date] += 1
       end
 
-    11.downto(0).map do |months_ago|
-      month = months_ago.months.ago.beginning_of_month
+    months = []
+    cursor = start_time.beginning_of_month
+    while cursor <= end_time
+      months << cursor
+      cursor += 1.month
+    end
+
+    months.map do |month|
       { label: month.strftime("%b %Y"), plays: counts_by_month.fetch(month.to_date, 0) }
     end
   end
@@ -106,7 +155,8 @@ class StatsController < ApplicationController
   end
 
   def completed_event_scope
-    PlexStreamEvent.completed_video_play_scope(event_scope, library_titles: @active_library_titles, library_ids: @active_library_ids)
+    scope = PlexStreamEvent.completed_video_play_scope(event_scope, library_titles: @active_library_titles, library_ids: @active_library_ids)
+    @stats_period_start ? scope.where("viewed_at >= ?", @stats_period_start) : scope
   end
 
   def required_machine_identifier

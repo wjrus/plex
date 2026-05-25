@@ -14,18 +14,32 @@
       <p class="mt-2 text-sm leading-6 text-amber-50/80"><%= @configuration_error || @plex_error %></p>
     </section>
   <% else %>
+    <nav class="flex flex-wrap gap-2" aria-label="Stats period">
+      <% @stats_period_options.each do |period, label| %>
+        <% active = period == @stats_period %>
+        <%= link_to label,
+          stats_path(period: period),
+          class: [
+            "inline-flex cursor-pointer items-center justify-center rounded-md border px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-zinc-950",
+            active ? "border-cyan-300 bg-cyan-300 text-zinc-950" : "border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:bg-zinc-900 hover:text-white"
+          ].join(" "),
+          aria: { current: active ? "page" : nil } %>
+      <% end %>
+    </nav>
+
     <section class="grid gap-3 sm:grid-cols-3">
       <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
         <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Completed Plays</p>
-        <p class="mt-2 text-lg font-semibold text-white"><%= number_with_delimiter(@history_summary[:completed_plays]) %></p>
+        <p class="mt-2 text-lg font-semibold text-white"><%= number_with_delimiter(@period_summary[:completed_plays]) %></p>
+        <p class="mt-1 text-xs text-zinc-500"><%= @stats_period_label %></p>
       </div>
       <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
         <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Oldest</p>
-        <p class="mt-2 text-lg font-semibold text-white"><%= @history_summary[:oldest] ? l(@history_summary[:oldest], format: :short) : "None" %></p>
+        <p class="mt-2 text-lg font-semibold text-white"><%= @period_summary[:oldest] ? l(@period_summary[:oldest], format: :short) : "None" %></p>
       </div>
       <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
         <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Newest</p>
-        <p class="mt-2 text-lg font-semibold text-white"><%= @history_summary[:newest] ? l(@history_summary[:newest], format: :short) : "None" %></p>
+        <p class="mt-2 text-lg font-semibold text-white"><%= @period_summary[:newest] ? l(@period_summary[:newest], format: :short) : "None" %></p>
       </div>
     </section>
 
@@ -93,16 +107,19 @@
       </div>
 
       <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
-        <h2 class="text-lg font-semibold text-white">Last 12 Months</h2>
+        <h2 class="text-lg font-semibold text-white">Activity</h2>
         <div class="mt-4 grid gap-3">
-          <% @monthly_stats.each do |stat| %>
+          <% @activity_stats.each do |stat| %>
             <div class="grid grid-cols-[5.5rem_minmax(0,1fr)_4rem] items-center gap-3 text-sm">
               <span class="text-zinc-400"><%= stat[:label] %></span>
               <div class="h-2 overflow-hidden rounded-full bg-zinc-900">
-                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_monthly_plays) %>%"></div>
+                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_activity_plays) %>%"></div>
               </div>
               <span class="text-right text-zinc-300"><%= number_with_delimiter(stat[:plays]) %></span>
             </div>
+          <% end %>
+          <% if @activity_stats.empty? %>
+            <p class="text-sm text-zinc-400">No activity in this period.</p>
           <% end %>
         </div>
       </div>
