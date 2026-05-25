@@ -45,8 +45,12 @@
               <th class="px-4 py-3 font-semibold">Cover</th>
               <th class="px-4 py-3 font-semibold">Title</th>
               <th class="px-4 py-3 font-semibold">Type</th>
-              <th class="px-4 py-3 font-semibold">Player</th>
-              <th class="px-4 py-3 font-semibold">IP Address</th>
+              <% if @stream_has_player_data %>
+                <th class="px-4 py-3 font-semibold">Player</th>
+              <% end %>
+              <% if @stream_has_ip_data %>
+                <th class="px-4 py-3 font-semibold">IP Address</th>
+              <% end %>
             </tr>
           </thead>
           <tbody class="divide-y divide-zinc-800">
@@ -63,8 +67,12 @@
                 </td>
                 <td class="px-4 py-3 font-medium text-white"><%= event.label %></td>
                 <td class="px-4 py-3 text-zinc-400"><%= event.media_type.presence || "unknown" %></td>
-                <td class="px-4 py-3 text-zinc-300"><%= event.player_label %></td>
-                <td class="px-4 py-3 text-zinc-400"><%= event.ip_address.presence || "Unknown" %></td>
+                <% if @stream_has_player_data %>
+                  <td class="px-4 py-3 text-zinc-300"><%= event.player_label %></td>
+                <% end %>
+                <% if @stream_has_ip_data %>
+                  <td class="px-4 py-3 text-zinc-400"><%= event.ip_address.presence || "Unknown" %></td>
+                <% end %>
               </tr>
             <% end %>
           </tbody>

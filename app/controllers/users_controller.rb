@@ -106,6 +106,8 @@ class UsersController < ApplicationController
     @stream_page = [ @stream_page, @stream_total_pages ].min
     @stream_offset = (@stream_page - 1) * @stream_per_page
     @stream_events = scope.offset(@stream_offset).limit(@stream_per_page)
+    @stream_has_player_data = scope.where.not(player_title: [ nil, "" ]).or(scope.where.not(player_platform: [ nil, "" ])).exists?
+    @stream_has_ip_data = scope.where.not(ip_address: [ nil, "" ]).exists?
     @stream_page_start = @stream_events_count.zero? ? 0 : @stream_offset + 1
     @stream_page_end = [ @stream_offset + @stream_events.size, @stream_events_count ].min
   end

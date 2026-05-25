@@ -73,6 +73,24 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "button", "Remove user from Plex shares"
   end
 
+  test "hides player and ip history columns when there is no stored data" do
+    PlexStreamEvent.create!(
+      machine_identifier: "machine-one",
+      account_id: "42",
+      viewed_at: Time.zone.local(2026, 5, 24, 12, 0, 0),
+      full_title: "Taskmaster - The Noise That Blue Makes",
+      media_type: "episode"
+    )
+
+    get user_path("42")
+
+    assert_response :success
+    assert_select "td", text: "Taskmaster - The Noise That Blue Makes"
+    assert_select "th", text: "Player", count: 0
+    assert_select "th", text: "IP Address", count: 0
+    assert_select "td", text: "Unknown", count: 0
+  end
+
   test "includes local history accounts that are not shared users" do
     ENV["PLEX_OWNER_ACCOUNT_ID"] = "owner-one"
     ENV["PLEX_OWNER_NAME"] = "Server Owner"
