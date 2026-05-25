@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'USAGE'
+Usage:
+  ./scripts/prune-samples
+
+Environment overrides:
+  PLEX_NOW_PLAYING_RETENTION_DAYS=90
+
+Prunes old Now Playing samples inside the Compose web container.
+USAGE
+  exit 0
+fi
+
+docker compose run --rm web ./bin/rails plex:prune_now_playing_samples

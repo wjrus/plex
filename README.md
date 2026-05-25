@@ -114,6 +114,15 @@ bin/rails test
 bin/rubocop
 ```
 
+Production helper scripts:
+
+```sh
+./scripts/backfill-history
+./scripts/resume-backfill 179
+./scripts/sample-now-playing
+./scripts/prune-samples
+```
+
 ## Deployment
 
 See [docs/deploy.md](docs/deploy.md) for Docker Compose,

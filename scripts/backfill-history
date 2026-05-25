@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+days="${PLEX_HISTORY_DAYS:-all}"
+max_pages="${PLEX_HISTORY_MAX_PAGES:-all}"
+page_size="${PLEX_HISTORY_PAGE_SIZE:-1000}"
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'USAGE'
+Usage:
+  ./scripts/backfill-history
+
+Environment overrides:
+  PLEX_HISTORY_DAYS=730
+  PLEX_HISTORY_MAX_PAGES=all
+  PLEX_HISTORY_PAGE_SIZE=1000
+
+Runs the playback-history backfill inside the Compose web container.
+USAGE
+  exit 0
+fi
+
+docker compose run --rm web env \
+  PLEX_HISTORY_DAYS="$days" \
+  PLEX_HISTORY_MAX_PAGES="$max_pages" \
+  PLEX_HISTORY_PAGE_SIZE="$page_size" \
+  ./bin/rails plex:backfill_history

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'USAGE'
+Usage:
+  ./scripts/sample-now-playing
+
+Records one current Now Playing sample inside the Compose web container.
+USAGE
+  exit 0
+fi
+
+docker compose run --rm web ./bin/rails plex:sample_now_playing

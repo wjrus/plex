@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" || $# -lt 1 ]]; then
+  cat <<'USAGE'
+Usage:
+  ./scripts/resume-backfill START_PAGE
+
+Example:
+  ./scripts/resume-backfill 179
+
+Environment overrides:
+  PLEX_HISTORY_DAYS=all
+  PLEX_HISTORY_MAX_PAGES=all
+  PLEX_HISTORY_PAGE_SIZE=1000
+USAGE
+  exit 0
+fi
+
+start_page="$1"
+days="${PLEX_HISTORY_DAYS:-all}"
+max_pages="${PLEX_HISTORY_MAX_PAGES:-all}"
+page_size="${PLEX_HISTORY_PAGE_SIZE:-1000}"
+
+docker compose run --rm web env \
+  PLEX_HISTORY_START_PAGE="$start_page" \
+  PLEX_HISTORY_DAYS="$days" \
+  PLEX_HISTORY_MAX_PAGES="$max_pages" \
+  PLEX_HISTORY_PAGE_SIZE="$page_size" \
+  ./bin/rails plex:backfill_history
