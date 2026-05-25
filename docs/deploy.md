@@ -8,8 +8,10 @@ Production is a small Docker Compose stack intended to live at:
 
 It runs:
 
-- `web`: Rails/Puma/Thruster on container port `80`, bound to localhost only
+- `web`: Rails/Puma/Thruster on container port `80`
 - `db`: PostgreSQL 18 with primary, cache, queue, and cable databases
+- `daily_refresh`: scheduled Plex metadata/history refresh task
+- `now_playing_sampler`: optional current-session sampler
 
 The host port defaults to `3010`, bound on all host interfaces so a separate
 Nginx Proxy Manager container/host can reach it. Your reverse proxy can forward
@@ -36,12 +38,12 @@ cp .env.postgres.example .env.postgres
 Generate secrets:
 
 ```sh
-bin/rails secret
+openssl rand -hex 64
 openssl rand -hex 32
 ```
 
-Put the `bin/rails secret` value in `.env.production` as `SECRET_KEY_BASE`.
-Put the random Postgres password in both places:
+Put the first value in `.env.production` as `SECRET_KEY_BASE`. Put the second
+value in both Postgres password locations:
 
 ```sh
 # .env.postgres
@@ -56,14 +58,20 @@ Fill in the remaining `.env.production` values:
 ```sh
 PLEX_HOST=plexadmin.example.com
 PLEX_HOSTS=plexadmin.example.com
-PLEX_FORCE_SSL=true
+PLEX_ASSUME_SSL=true
+PLEX_FORCE_SSL=false
 ADMIN_USERS=admin@example.com
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 PLEX_TOKEN=...
 PLEX_MACHINE_IDENTIFIER=...
 PLEX_SERVER_BASE_URL=http://plex.example.com:32400
+PLEX_DAILY_REFRESH_AT=04:15
+PLEX_DAILY_REFRESH_DAYS=1
 ```
+
+Use `ADMIN_USERS` as a comma-separated list when more than one Google account
+should be allowed to administer the app.
 
 Google OAuth redirect URI:
 
@@ -82,6 +90,15 @@ Follow logs:
 ```sh
 ./scripts/logs
 ./scripts/logs all
+```
+
+The deploy script runs `git pull --ff-only`, builds the image, prepares the
+databases, starts `web` and `daily_refresh`, and verifies `/up` through the host
+port. The `now_playing_sampler` service is defined in Compose but is not started
+by `scripts/deploy`; start it explicitly if you want current-session samples:
+
+```sh
+docker compose up -d now_playing_sampler
 ```
 
 ## Nginx Reverse Proxy
@@ -155,7 +172,7 @@ docker compose exec -T db pg_restore \
   --dbname=plex_production \
   /tmp/plex_development.dump
 docker compose run --rm web ./bin/rails db:migrate
-docker compose up -d web
+docker compose up -d web daily_refresh
 ```
 
 Verify:
@@ -164,6 +181,32 @@ Verify:
 docker compose exec web ./bin/rails runner 'puts ShareSnapshot.count; puts PlexUserNote.count'
 curl -fsSI -H 'Host: plexadmin.example.com' http://127.0.0.1:3010/up
 ```
+
+## Refresh And Backfill
+
+Manual Plex metadata refreshes are available from the Maintenance page. The
+panel shows whether a refresh is queued/running, the last heartbeat, and history
+progress when history is included.
+
+For long history work, prefer the command line:
+
+```sh
+docker compose run --rm web ./bin/rails plex:refresh
+docker compose run --rm web env PLEX_HISTORY_DAYS=all PLEX_HISTORY_MAX_PAGES=all ./bin/rails plex:backfill_history
+docker compose run --rm web env PLEX_HISTORY_START_PAGE=179 PLEX_HISTORY_DAYS=all ./bin/rails plex:backfill_history
+```
+
+Or use the helper scripts:
+
+```sh
+./scripts/backfill-history
+./scripts/resume-backfill 179
+./scripts/sample-now-playing
+./scripts/prune-samples
+```
+
+Backfill writes progress after each page. If a connection drops or Plex times
+out too many times, resume from the next page shown in the task output.
 
 ## Useful Commands
 
@@ -174,7 +217,9 @@ curl -fsSI -H 'Host: plexadmin.example.com' http://127.0.0.1:3010/up
 docker compose ps
 docker compose exec web ./bin/rails console
 docker compose run --rm web ./bin/rails plex:refresh
+docker compose run --rm web ./bin/rails plex:backfill_history
 docker compose logs -f daily_refresh
+docker compose logs -f now_playing_sampler
 ```
 
 ## Backups
