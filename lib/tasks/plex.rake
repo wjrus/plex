@@ -7,14 +7,6 @@ namespace :plex do
     ENV["PLEX_HISTORY_DAYS"] ||= "730"
 
     started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    refresh_run = RefreshRun.create!(
-      machine_identifier: machine_identifier,
-      status: "running",
-      admin_email: "rake:backfill",
-      include_history: true,
-      started_at: Time.current,
-      last_message: "History backfill started at page #{start_page}"
-    )
     puts "Refreshing Plex shares for #{machine_identifier}..."
     puts "History scan: page_size=#{ENV.fetch('PLEX_HISTORY_PAGE_SIZE', '1000')} max_pages=#{ENV.fetch('PLEX_HISTORY_MAX_PAGES', 'all')}"
     history_window = ENV["PLEX_HISTORY_DAYS"].presence
@@ -92,6 +84,14 @@ namespace :plex do
     total_saved = 0
     stopped_on_error = false
     started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    refresh_run = RefreshRun.create!(
+      machine_identifier: machine_identifier,
+      status: "running",
+      admin_email: "rake:backfill",
+      include_history: true,
+      started_at: Time.current,
+      last_message: "History backfill started at page #{start_page}"
+    )
 
     puts "Backfilling Plex playback history for #{machine_identifier}..."
     puts "History scan: page_size=#{page_size} max_pages=#{max_pages || 'all'}"
@@ -174,6 +174,12 @@ namespace :plex do
     saved_count = PlexNowPlayingSample.record_sessions!(machine_identifier, sessions)
     puts "Now playing sessions: #{sessions.size}"
     puts "Samples saved: #{saved_count}"
+  end
+
+  desc "Prune old now playing samples"
+  task prune_now_playing_samples: :environment do
+    deleted_count = PlexNowPlayingSample.prune!
+    puts "Pruned #{deleted_count.to_fs(:delimited)} now playing samples older than #{PlexNowPlayingSample.retention_days} days"
   end
 
   def history_max_pages

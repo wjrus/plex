@@ -3,6 +3,14 @@ class PlexNowPlayingSample < ApplicationRecord
 
   scope :recent, -> { order(sampled_at: :desc, id: :desc) }
 
+  def self.retention_days
+    ENV.fetch("PLEX_NOW_PLAYING_RETENTION_DAYS", "90").to_i.clamp(1, 3650)
+  end
+
+  def self.prune!(older_than: retention_days.days.ago)
+    where("sampled_at < ?", older_than).delete_all
+  end
+
   def self.record_sessions!(machine_identifier, sessions, sampled_at: Time.current)
     rows = Array(sessions).map do |stream|
       {

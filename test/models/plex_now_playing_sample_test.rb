@@ -33,4 +33,22 @@ class PlexNowPlayingSampleTest < ActiveSupport::TestCase
     assert_equal 50, sample.progress_percent
     assert_equal "playing", sample.state
   end
+
+  test "prunes samples older than retention cutoff" do
+    PlexNowPlayingSample.create!(
+      machine_identifier: "machine-one",
+      sampled_at: 91.days.ago,
+      session_id: "old"
+    )
+    PlexNowPlayingSample.create!(
+      machine_identifier: "machine-one",
+      sampled_at: 2.days.ago,
+      session_id: "new"
+    )
+
+    assert_difference -> { PlexNowPlayingSample.count }, -1 do
+      assert_equal 1, PlexNowPlayingSample.prune!(older_than: 90.days.ago)
+    end
+    assert_equal [ "new" ], PlexNowPlayingSample.pluck(:session_id)
+  end
 end

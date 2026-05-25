@@ -53,6 +53,7 @@ PLEX_HISTORY_RETRIES=8
 PLEX_CLIENT_IDENTIFIER=plex-shares-local
 PLEX_CLIENT_NAME=Plex Shares
 PLEX_NOW_PLAYING_SAMPLE_INTERVAL=60
+PLEX_NOW_PLAYING_RETENTION_DAYS=90
 PLEX_OWNER_ACCOUNT_ID=
 PLEX_OWNER_NAME=
 PLEX_OWNER_USERNAME=
@@ -102,7 +103,9 @@ once per day with `PLEX_DAILY_REFRESH_DAYS=1`. Set `PLEX_DAILY_REFRESH_AT` in
 
 The `now_playing_sampler` Compose service records lightweight current-stream
 samples every `PLEX_NOW_PLAYING_SAMPLE_INTERVAL` seconds. This captures future
-player/IP data from the live sessions endpoint when Plex exposes it.
+player/IP data from the live sessions endpoint when Plex exposes it. Samples
+older than `PLEX_NOW_PLAYING_RETENTION_DAYS` are pruned automatically by the
+sampler and can also be pruned from the Maintenance page.
 
 ## Useful commands
 

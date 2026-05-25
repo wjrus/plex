@@ -1,0 +1,53 @@
+<% content_for :title, "Plex Maintenance" %>
+
+<div class="mx-auto flex w-full max-w-[100rem] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+  <header class="flex min-h-16 flex-col gap-4 border-b border-zinc-800 pb-5 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+      <h1 class="text-3xl font-semibold tracking-normal text-white">Maintenance</h1>
+    </div>
+    <%= render "shared/page_nav" %>
+  </header>
+
+  <section class="grid gap-4 lg:grid-cols-3">
+    <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+      <h2 class="text-lg font-semibold text-white">Now Playing Samples</h2>
+      <dl class="mt-4 grid gap-2 text-sm text-zinc-400">
+        <div><dt class="inline text-zinc-500">Stored:</dt> <dd class="inline"><%= number_with_delimiter(@now_playing_sample_count) %></dd></div>
+        <div><dt class="inline text-zinc-500">Retention:</dt> <dd class="inline"><%= pluralize(@retention_days, "day") %></dd></div>
+        <div><dt class="inline text-zinc-500">Latest:</dt> <dd class="inline"><%= @latest_now_playing_sample ? l(@latest_now_playing_sample.sampled_at, format: :long) : "None" %></dd></div>
+        <div><dt class="inline text-zinc-500">Oldest:</dt> <dd class="inline"><%= @oldest_now_playing_sample ? l(@oldest_now_playing_sample.sampled_at, format: :long) : "None" %></dd></div>
+      </dl>
+      <div class="mt-5 flex flex-wrap gap-3">
+        <%= button_to "Sample now",
+          maintenance_sample_now_playing_path,
+          method: :post,
+          class: "inline-flex items-center justify-center rounded-md bg-cyan-300 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+        <%= button_to "Prune old samples",
+          maintenance_prune_now_playing_samples_path,
+          method: :post,
+          class: "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+      </div>
+    </div>
+
+    <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+      <h2 class="text-lg font-semibold text-white">Playback History</h2>
+      <% if @history_summary && @history_summary[:total].positive? %>
+        <dl class="mt-4 grid gap-2 text-sm text-zinc-400">
+          <div><dt class="inline text-zinc-500">Events:</dt> <dd class="inline"><%= number_with_delimiter(@history_summary[:total]) %></dd></div>
+          <div><dt class="inline text-zinc-500">Oldest:</dt> <dd class="inline"><%= l(@history_summary[:oldest], format: :long) %></dd></div>
+          <div><dt class="inline text-zinc-500">Newest:</dt> <dd class="inline"><%= l(@history_summary[:newest], format: :long) %></dd></div>
+        </dl>
+      <% else %>
+        <p class="mt-3 text-sm text-zinc-400">No local playback history has been stored yet.</p>
+      <% end %>
+    </div>
+
+    <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+      <h2 class="text-lg font-semibold text-white">Suppressed Users</h2>
+      <p class="mt-4 text-sm text-zinc-400"><%= pluralize(@suppressed_user_count, "user") %> hidden from the default Access and Users lists.</p>
+      <%= link_to "Manage suppressed users",
+        users_path(status: "suppressed"),
+        class: "mt-5 inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
+    </div>
+  </section>
+</div>
