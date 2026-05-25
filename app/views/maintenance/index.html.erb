@@ -46,7 +46,7 @@
       <h2 class="text-lg font-semibold text-white">Suppressed Users</h2>
       <p class="mt-4 text-sm text-zinc-400"><%= pluralize(@suppressed_user_count, "user") %> hidden from the default Access and Users lists.</p>
       <%= link_to "Manage suppressed users",
-        users_path(status: "suppressed"),
+        suppressed_users_path,
         class: "mt-5 inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
     </div>
   </section>

@@ -19,6 +19,7 @@ Rails.application.routes.draw do
   get "maintenance", to: "maintenance#index", as: :maintenance
   post "maintenance/sample_now_playing", to: "maintenance#sample_now_playing", as: :maintenance_sample_now_playing
   post "maintenance/prune_now_playing_samples", to: "maintenance#prune_now_playing_samples", as: :maintenance_prune_now_playing_samples
+  get "suppressed", to: "suppressed_users#index", as: :suppressed_users
   get "users", to: "users#index", as: :users
   get "users/:plex_user_id", to: "users#show", as: :user
   patch "users/:plex_user_id/note", to: "users#update_note", as: :user_note
