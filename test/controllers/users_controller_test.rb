@@ -67,6 +67,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "th", text: "Library", count: 0
     assert_select "td", text: "Apple TV · tvOS"
     assert_select "td", text: "192.0.2.10"
+    assert_select "dialog.confirmation-dialog"
     assert_select "input[type=checkbox][name='library_ids[]']"
     assert_select "textarea[name='plex_user_note[notes]']"
     assert_select "button", "Remove user from Plex shares"

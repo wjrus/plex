@@ -221,6 +221,22 @@ html.theme-applying *::after {
   padding: 0.4rem 0.55rem;
 }
 
+.flash-stack {
+  z-index: 5000;
+}
+
+.confirmation-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  max-height: calc(100dvh - 2rem);
+  color: var(--theme-text);
+}
+
+.confirmation-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
 .user-row-link {
   cursor: pointer;
   transition: background-color 0.15s ease, outline-color 0.15s ease;
