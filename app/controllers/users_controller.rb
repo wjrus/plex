@@ -194,10 +194,12 @@ class UsersController < ApplicationController
       .order(Arel.sql("COUNT(*) DESC"))
       .pluck(:media_type, Arel.sql("COUNT(*)"))
       .map { |media_type, plays| { label: media_type, plays: plays } }
-    @stream_top_titles = aggregate_title_stats(scope, limit: 8)
+    @stream_top_series = aggregate_title_stats(scope.where(media_type: "episode"), limit: 8)
+    @stream_top_movies = aggregate_title_stats(scope.where(media_type: "movie"), limit: 8)
     @max_stream_monthly_plays = @stream_monthly_stats.map { |stat| stat[:plays] }.max.to_i
     @max_stream_type_plays = @stream_type_stats.map { |stat| stat[:plays] }.max.to_i
-    @max_stream_title_plays = @stream_top_titles.map { |stat| stat[:plays] }.max.to_i
+    @max_stream_series_plays = @stream_top_series.map { |stat| stat[:plays] }.max.to_i
+    @max_stream_movie_plays = @stream_top_movies.map { |stat| stat[:plays] }.max.to_i
   end
 
   def load_now_playing_samples

@@ -262,7 +262,7 @@
       </dialog>
     </div>
 
-    <section class="grid gap-4 xl:grid-cols-3">
+    <section class="grid gap-4 xl:grid-cols-2 2xl:grid-cols-4">
       <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
         <h2 class="text-lg font-semibold text-white">Monthly Activity</h2>
         <div class="mt-4 grid gap-3">
@@ -299,22 +299,43 @@
       </div>
 
       <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
-        <h2 class="text-lg font-semibold text-white">Top Titles</h2>
+        <h2 class="text-lg font-semibold text-white">Top Series</h2>
         <div class="mt-4 grid gap-3">
-          <% @stream_top_titles.each do |stat| %>
+          <% @stream_top_series.each do |stat| %>
             <div class="min-w-0">
               <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 text-sm">
                 <span class="min-w-0 truncate font-medium text-white" title="<%= stat[:label] %>"><%= stat[:label] %></span>
                 <span class="shrink-0 text-zinc-400"><%= number_with_delimiter(stat[:plays]) %></span>
               </div>
               <div class="mt-2 h-2 overflow-hidden rounded-full bg-zinc-900">
-                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_stream_title_plays) %>%"></div>
+                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_stream_series_plays) %>%"></div>
               </div>
               <p class="mt-1 text-xs text-zinc-500">Latest <%= stat[:latest] ? l(stat[:latest], format: :short) : "unknown" %></p>
             </div>
           <% end %>
-          <% if @stream_top_titles.empty? %>
-            <p class="text-sm text-zinc-400">No title history yet.</p>
+          <% if @stream_top_series.empty? %>
+            <p class="text-sm text-zinc-400">No series history yet.</p>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+        <h2 class="text-lg font-semibold text-white">Top Movies</h2>
+        <div class="mt-4 grid gap-3">
+          <% @stream_top_movies.each do |stat| %>
+            <div class="min-w-0">
+              <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 text-sm">
+                <span class="min-w-0 truncate font-medium text-white" title="<%= stat[:label] %>"><%= stat[:label] %></span>
+                <span class="shrink-0 text-zinc-400"><%= number_with_delimiter(stat[:plays]) %></span>
+              </div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-zinc-900">
+                <div class="h-full rounded-full bg-cyan-300" style="width: <%= percentage_width(stat[:plays], @max_stream_movie_plays) %>%"></div>
+              </div>
+              <p class="mt-1 text-xs text-zinc-500">Latest <%= stat[:latest] ? l(stat[:latest], format: :short) : "unknown" %></p>
+            </div>
+          <% end %>
+          <% if @stream_top_movies.empty? %>
+            <p class="text-sm text-zinc-400">No movie history yet.</p>
           <% end %>
         </div>
       </div>

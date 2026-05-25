@@ -43,6 +43,31 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "shows user details" do
+    ShareSnapshot.create!(
+      machine_identifier: "machine-one",
+      server: { name: "Local Plex" },
+      libraries: [
+        { id: "1", key: "1", title: "Movies", type: "movie" },
+        { id: "2", key: "2", title: "TV Shows", type: "show" }
+      ],
+      users: [
+        {
+          id: "42",
+          share_id: "99",
+          title: "Viewer",
+          username: "viewer",
+          email: "viewer@example.com",
+          pending: false,
+          all_libraries: true,
+          library_count: 2,
+          libraries: [
+            { id: "1", key: "1", title: "Movies", type: "movie" },
+            { id: "2", key: "2", title: "TV Shows", type: "show" }
+          ]
+        }
+      ],
+      fetched_at: Time.current
+    )
     PlexStreamEvent.create!(
       machine_identifier: "machine-one",
       account_id: "42",
@@ -53,6 +78,17 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
       player_title: "Apple TV",
       player_platform: "tvOS",
       ip_address: "192.0.2.10"
+    )
+    PlexStreamEvent.create!(
+      machine_identifier: "machine-one",
+      account_id: "42",
+      viewed_at: Time.zone.local(2026, 5, 24, 13, 0, 0),
+      title: "The Nice Guys",
+      full_title: "The Nice Guys",
+      library_title: "Movies",
+      media_type: "movie",
+      duration: 1000,
+      view_offset: 950
     )
     PlexNowPlayingSample.create!(
       machine_identifier: "machine-one",
@@ -73,9 +109,12 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", "Library Access"
     assert_select "h2", "Monthly Activity"
     assert_select "h2", "Type Mix"
-    assert_select "h2", "Top Titles"
+    assert_select "h2", "Top Series"
+    assert_select "h2", "Top Movies"
     assert_select "h2", "Stream History"
     assert_select "h2", "Recent Live Sessions"
+    assert_select "span", text: "Taskmaster"
+    assert_select "span", text: "The Nice Guys"
     assert_select "input[name='stream_q']"
     assert_select "select[name='stream_type']"
     assert_select "td", text: "Taskmaster - The Noise That Blue Makes"
