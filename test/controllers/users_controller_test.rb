@@ -177,7 +177,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "turbo-frame#stream_history"
-    assert_select "p", text: "Showing 1-25 of 30"
+    assert_select "p", text: /Showing 1-25 of 30/
     assert_select "td", text: "History Item 1"
     assert_select "td", text: "History Item 26", count: 0
     assert_select "a[data-turbo-frame='stream_history']", text: "Next"
@@ -185,7 +185,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     get user_path("42", stream_page: 2)
 
     assert_response :success
-    assert_select "p", text: "Showing 26-30 of 30"
+    assert_select "p", text: /Showing 26-30 of 30/
     assert_select "td", text: "History Item 26"
     assert_select "td", text: "History Item 1", count: 0
     assert_select "a[data-turbo-frame='stream_history']", text: "Previous"

@@ -7,6 +7,14 @@ namespace :plex do
     ENV["PLEX_HISTORY_DAYS"] ||= "730"
 
     started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    refresh_run = RefreshRun.create!(
+      machine_identifier: machine_identifier,
+      status: "running",
+      admin_email: "rake:backfill",
+      include_history: true,
+      started_at: Time.current,
+      last_message: "History backfill started at page #{start_page}"
+    )
     puts "Refreshing Plex shares for #{machine_identifier}..."
     puts "History scan: page_size=#{ENV.fetch('PLEX_HISTORY_PAGE_SIZE', '1000')} max_pages=#{ENV.fetch('PLEX_HISTORY_MAX_PAGES', 'all')}"
     history_window = ENV["PLEX_HISTORY_DAYS"].presence
@@ -112,6 +120,11 @@ namespace :plex do
       total_rows += history.size
       total_saved += saved_count
       pages_scanned += 1
+      refresh_run.update!(
+        history_pages_retrieved: page + 1,
+        history_rows_retrieved: refresh_run.history_rows_retrieved + history.size,
+        last_message: "History page #{page + 1} retrieved"
+      )
 
       stop_reason = if viewed_after && history_older_than_window?(history, viewed_after)
         "reached history window"
@@ -137,6 +150,20 @@ namespace :plex do
     puts "Rows scanned: #{total_rows.to_fs(:delimited)}"
     puts "New events saved: #{total_saved.to_fs(:delimited)}"
     puts "Elapsed: #{elapsed.round(1)}s"
+    refresh_run.update!(
+      status: stopped_on_error ? "failed" : "completed",
+      finished_at: Time.current,
+      error_message: stopped_on_error ? "Stopped before page #{page + 1}" : nil,
+      last_message: stopped_on_error ? "Backfill stopped before page #{page + 1}" : "Backfill complete"
+    )
+  rescue StandardError => error
+    refresh_run&.update!(
+      status: "failed",
+      finished_at: Time.current,
+      error_message: error.message,
+      last_message: "History backfill failed"
+    )
+    raise
   end
 
   def history_max_pages

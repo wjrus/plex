@@ -6,6 +6,7 @@
         <% if @stream_events_count.positive? %>
           <p class="mt-1 text-xs text-zinc-500">
             Showing <%= @stream_page_start %>-<%= @stream_page_end %> of <%= number_with_delimiter(@stream_events_count) %>
+            · <%= link_to "Export CSV", user_path(@user.id, format: :csv), class: "font-semibold text-cyan-300 hover:text-white", data: { turbo: false } %>
           </p>
         <% end %>
       </div>

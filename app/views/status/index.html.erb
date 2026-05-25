@@ -37,6 +37,14 @@
       <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Latest Run</p>
       <p class="mt-2 text-lg font-semibold text-white"><%= @latest_refresh&.label || "None" %></p>
     </div>
+    <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">History Rows</p>
+      <p class="mt-2 text-lg font-semibold text-white"><%= @history_summary ? number_with_delimiter(@history_summary[:total]) : "Unknown" %></p>
+    </div>
+    <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Last Backfill</p>
+      <p class="mt-2 text-lg font-semibold text-white"><%= @last_backfill_refresh&.finished_at ? l(@last_backfill_refresh.finished_at, format: :short) : "Unknown" %></p>
+    </div>
   </section>
 
   <section class="grid gap-4 lg:grid-cols-2">
@@ -99,6 +107,21 @@
         <p class="mt-2 text-sm text-zinc-500"><%= @latest_audit_log.details.presence || "No additional details" %></p>
       <% else %>
         <p class="mt-3 text-sm text-zinc-400">No audit events yet.</p>
+      <% end %>
+    </div>
+
+    <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+      <h2 class="text-lg font-semibold text-white">Playback History</h2>
+      <% if @history_summary && @history_summary[:total].positive? %>
+        <dl class="mt-4 grid gap-2 text-sm text-zinc-400">
+          <div><dt class="inline text-zinc-500">Events:</dt> <dd class="inline"><%= number_with_delimiter(@history_summary[:total]) %></dd></div>
+          <div><dt class="inline text-zinc-500">Oldest:</dt> <dd class="inline"><%= l(@history_summary[:oldest], format: :long) %></dd></div>
+          <div><dt class="inline text-zinc-500">Newest:</dt> <dd class="inline"><%= l(@history_summary[:newest], format: :long) %></dd></div>
+          <div><dt class="inline text-zinc-500">With player:</dt> <dd class="inline"><%= number_with_delimiter(@history_summary[:with_player]) %></dd></div>
+          <div><dt class="inline text-zinc-500">With IP:</dt> <dd class="inline"><%= number_with_delimiter(@history_summary[:with_ip]) %></dd></div>
+        </dl>
+      <% else %>
+        <p class="mt-3 text-sm text-zinc-400">No local playback history has been stored yet.</p>
       <% end %>
     </div>
   </section>

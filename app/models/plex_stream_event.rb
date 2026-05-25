@@ -2,6 +2,7 @@ class PlexStreamEvent < ApplicationRecord
   validates :machine_identifier, :account_id, :viewed_at, presence: true
 
   scope :recent, -> { order(viewed_at: :desc, id: :desc) }
+  scope :for_machine, ->(machine_identifier) { where(machine_identifier: machine_identifier) }
 
   def self.for_user(machine_identifier, account_id, limit: 25)
     where(machine_identifier: machine_identifier, account_id: account_id.to_s)
@@ -54,6 +55,17 @@ class PlexStreamEvent < ApplicationRecord
 
   def player_label
     [ player_title, player_platform ].compact_blank.join(" · ").presence || "Unknown"
+  end
+
+  def self.history_summary(machine_identifier)
+    scope = for_machine(machine_identifier)
+    {
+      total: scope.count,
+      oldest: scope.minimum(:viewed_at),
+      newest: scope.maximum(:viewed_at),
+      with_player: scope.where.not(player_title: [ nil, "" ]).or(scope.where.not(player_platform: [ nil, "" ])).count,
+      with_ip: scope.where.not(ip_address: [ nil, "" ]).count
+    }
   end
 
   def self.stream_title(stream)

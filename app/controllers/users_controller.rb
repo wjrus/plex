@@ -46,7 +46,16 @@ class UsersController < ApplicationController
 
     @note = PlexUserNote.find_by(plex_user_id: @user.id.to_s)
     load_stream_history
+    load_user_stream_stats
     @audit_logs = ShareAuditLog.where(plex_user_id: @user.id.to_s).recent.limit(50)
+    respond_to do |format|
+      format.html
+      format.csv do
+        send_data stream_history_csv,
+          filename: "plex-stream-history-#{@user.id}-#{Time.zone.today}.csv",
+          type: "text/csv"
+      end
+    end
   rescue Plex::ConfigurationError => error
     @configuration_error = error.message
   rescue ActiveRecord::ActiveRecordError => error
@@ -110,6 +119,28 @@ class UsersController < ApplicationController
     @stream_has_ip_data = scope.where.not(ip_address: [ nil, "" ]).exists?
     @stream_page_start = @stream_events_count.zero? ? 0 : @stream_offset + 1
     @stream_page_end = [ @stream_offset + @stream_events.size, @stream_events_count ].min
+  end
+
+  def load_user_stream_stats
+    scope = stream_scope
+    @stream_stats = {
+      total: scope.count,
+      first: scope.minimum(:viewed_at),
+      last: scope.maximum(:viewed_at),
+      last_30_days: scope.where("viewed_at >= ?", 30.days.ago).count,
+      last_90_days: scope.where("viewed_at >= ?", 90.days.ago).count,
+      top_type: top_group_value(scope, :media_type),
+      top_library: top_group_value(scope, :library_title)
+    }
+  end
+
+  def stream_scope
+    PlexStreamEvent.where(machine_identifier: @machine_identifier, account_id: @user.id.to_s)
+  end
+
+  def top_group_value(scope, column)
+    value, count = scope.where.not(column => [ nil, "" ]).group(column).count.max_by { |_value, grouped_count| grouped_count }
+    value ? "#{value} (#{count})" : "Unknown"
   end
 
   def record_note_update(note)
@@ -270,6 +301,23 @@ class UsersController < ApplicationController
           user.libraries.size,
           note&.notes.present?,
           @audit_counts_by_user_id.fetch(user.id.to_s, 0)
+        ]
+      end
+    end
+  end
+
+  def stream_history_csv
+    CSV.generate(headers: true) do |csv|
+      csv << [ "viewed_at", "title", "type", "library", "player", "ip_address", "rating_key" ]
+      stream_scope.recent.each do |event|
+        csv << [
+          event.viewed_at.iso8601,
+          event.label,
+          event.media_type,
+          event.library_title,
+          event.player_label == "Unknown" ? nil : event.player_label,
+          event.ip_address,
+          event.rating_key
         ]
       end
     end

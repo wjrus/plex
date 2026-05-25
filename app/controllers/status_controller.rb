@@ -10,6 +10,8 @@ class StatusController < ApplicationController
     @next_daily_refresh_at = next_daily_refresh_at
     @latest_audit_log = ShareAuditLog.recent.first
     @app_revision = app_revision
+    @history_summary = @machine_identifier ? PlexStreamEvent.history_summary(@machine_identifier) : nil
+    @last_backfill_refresh = refresh_scope.where(status: "completed", admin_email: "rake:backfill").latest_first.first
   end
 
   private
