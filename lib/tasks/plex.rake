@@ -87,6 +87,7 @@ namespace :plex do
 
     puts "Backfilling Plex playback history for #{machine_identifier}..."
     puts "History scan: page_size=#{page_size} max_pages=#{max_pages || 'all'}"
+    puts "History retries: #{history_retries}"
     puts "Starting page: #{start_page}"
     puts "History window: #{viewed_after ? "#{ENV['PLEX_HISTORY_DAYS']}d" : 'all'}"
 
@@ -159,7 +160,7 @@ namespace :plex do
   end
 
   def fetch_history_page_with_retries(client, page:, page_size:)
-    retries = ENV.fetch("PLEX_HISTORY_RETRIES", "3").to_i.clamp(0, 10)
+    retries = history_retries
     attempt = 0
 
     begin
@@ -176,5 +177,9 @@ namespace :plex do
       puts "History page #{page + 1} failed after #{attempt} attempts: #{error.message}"
       nil
     end
+  end
+
+  def history_retries
+    ENV.fetch("PLEX_HISTORY_RETRIES", "8").to_i.clamp(0, 20)
   end
 end

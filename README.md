@@ -49,6 +49,7 @@ PLEX_SERVER_BASE_URL=http://127.0.0.1:32400
 PLEX_HISTORY_PAGE_SIZE=1000
 PLEX_HISTORY_MAX_PAGES=all
 PLEX_HISTORY_DAYS=730
+PLEX_HISTORY_RETRIES=8
 PLEX_CLIENT_IDENTIFIER=plex-shares-local
 PLEX_CLIENT_NAME=Plex Shares
 PLEX_OWNER_ACCOUNT_ID=
@@ -91,6 +92,8 @@ PLEX_HISTORY_DAYS=all bin/rails plex:refresh
 ```
 
 Use the rake task when you want to refresh last-streamed history.
+`PLEX_HISTORY_RETRIES` controls how many times each history page is retried
+after a Plex timeout before the task stops and prints the resume page.
 
 In Docker Compose production, the `daily_refresh` service runs the same rake task
 once per day with `PLEX_DAILY_REFRESH_DAYS=1`. Set `PLEX_DAILY_REFRESH_AT` in
