@@ -40,6 +40,7 @@ class UsersController < ApplicationController
     raise ActiveRecord::RecordNotFound, "Unknown Plex user" unless @user
 
     @note = PlexUserNote.find_by(plex_user_id: @user.id.to_s)
+    @stream_events = PlexStreamEvent.for_user(@machine_identifier, @user.id, limit: 25)
     @audit_logs = ShareAuditLog.where(plex_user_id: @user.id.to_s).recent.limit(50)
   rescue Plex::ConfigurationError => error
     @configuration_error = error.message

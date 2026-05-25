@@ -3,6 +3,7 @@
 <nav class="flex flex-wrap gap-2" aria-label="Page navigation">
   <%= link_to "Access", root_path, class: nav_link_class %>
   <%= link_to "Users", users_path, class: nav_link_class %>
+  <%= link_to "Now", now_playing_path, class: nav_link_class %>
   <%= link_to "Log", share_audit_logs_path, class: nav_link_class %>
   <%= link_to "Status", status_path, class: nav_link_class %>
   <%= button_to "Sign out", sign_out_path, method: :delete, class: nav_link_class %>

@@ -10,9 +10,26 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_24_051000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_25_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "plex_stream_events", force: :cascade do |t|
+    t.string "account_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "duration"
+    t.string "full_title"
+    t.string "library_title"
+    t.string "machine_identifier", null: false
+    t.string "media_type"
+    t.string "rating_key"
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.integer "view_offset"
+    t.datetime "viewed_at", null: false
+    t.index ["machine_identifier", "account_id", "viewed_at", "rating_key"], name: "index_stream_events_on_machine_account_viewed_rating", unique: true
+    t.index ["machine_identifier", "account_id", "viewed_at"], name: "index_stream_events_on_machine_account_viewed"
+  end
 
   create_table "plex_user_notes", force: :cascade do |t|
     t.datetime "created_at", null: false

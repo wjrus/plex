@@ -257,6 +257,7 @@ module Plex
           rows: history.size,
           account_ids: account_ids,
           streams: streams,
+          page_streams: history.select { |stream| account_ids.include?(stream[:account_id].to_s) },
           labels_by_account_id: labels_by_account_id,
           stop_reason: stop_reason
         )
@@ -342,7 +343,7 @@ module Plex
       end
     end
 
-    def report_history_progress(page:, rows:, account_ids:, streams:, labels_by_account_id:, stop_reason:)
+    def report_history_progress(page:, rows:, account_ids:, streams:, labels_by_account_id:, stop_reason:, page_streams: [])
       return unless progress
 
       remaining_ids = account_ids - streams.keys.to_set
@@ -354,7 +355,8 @@ module Plex
         remaining: remaining_ids.size,
         stop_reason: stop_reason,
         remaining_labels: stop_reason ? remaining_ids.map { |account_id| labels_by_account_id.fetch(account_id, account_id) } : [],
-        streams: streams
+        streams: streams,
+        page_streams: page_streams
       )
     end
 

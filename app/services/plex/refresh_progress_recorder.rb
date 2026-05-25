@@ -36,6 +36,7 @@ module Plex
 
     def record_page_progress(event)
       stop_reason = event[:stop_reason].presence || "none"
+      PlexStreamEvent.upsert_streams!(refresh_run.machine_identifier, event[:page_streams])
       refresh_run.with_lock do
         refresh_run.reload
         refresh_run.update!(

@@ -35,11 +35,22 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "shows user details" do
+    PlexStreamEvent.create!(
+      machine_identifier: "machine-one",
+      account_id: "42",
+      viewed_at: Time.zone.local(2026, 5, 24, 12, 0, 0),
+      full_title: "Taskmaster - The Noise That Blue Makes",
+      library_title: "TV Shows",
+      media_type: "episode"
+    )
+
     get user_path("42")
 
     assert_response :success
     assert_select "h1", "Viewer"
     assert_select "h2", "Library Access"
+    assert_select "h2", "Stream History"
+    assert_select "td", text: "Taskmaster - The Noise That Blue Makes"
     assert_select "input[type=checkbox][name='library_ids[]']"
     assert_select "textarea[name='plex_user_note[notes]']"
     assert_select "button", "Remove user from Plex shares"

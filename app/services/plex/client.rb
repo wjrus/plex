@@ -77,6 +77,12 @@ module Plex
       media_container(server_fetch("/status/sessions/history/all", params: params))[:metadata]
     end
 
+    def playback_sessions
+      return [] unless server_base_url.present?
+
+      session_document(server_fetch("/status/sessions"))
+    end
+
     def update_shared_server(machine_identifier, shared_server_id, library_section_ids)
       request_json(
         "/api/servers/#{machine_identifier}/shared_servers/#{shared_server_id}",
@@ -228,6 +234,37 @@ module Plex
       end
     rescue REXML::ParseException => error
       raise Error, "Plex shared server response was unreadable: #{error.message}"
+    end
+
+    def session_document(body)
+      if body.lstrip.start_with?("{")
+        json_session_document(JSON.parse(body))
+      else
+        xml_session_document(REXML::Document.new(body))
+      end
+    rescue JSON::ParserError, REXML::ParseException => error
+      raise Error, "Plex sessions response was unreadable: #{error.message}"
+    end
+
+    def json_session_document(payload)
+      container = payload.fetch("MediaContainer", payload)
+      Array(container["Metadata"]).map do |metadata|
+        normalize_hash(metadata).merge(
+          user: normalize_hash(metadata["User"] || {}),
+          player: normalize_hash(metadata["Player"] || {}),
+          session: normalize_hash(metadata["Session"] || {})
+        )
+      end
+    end
+
+    def xml_session_document(document)
+      elements(document, "//Video|//Track").map do |metadata|
+        attributes(metadata).merge(
+          user: attributes(elements(metadata, "User").first),
+          player: attributes(elements(metadata, "Player").first),
+          session: attributes(elements(metadata, "Session").first)
+        )
+      end
     end
 
     def elements(source, xpath)
