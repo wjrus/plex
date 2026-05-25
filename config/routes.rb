@@ -19,6 +19,7 @@ Rails.application.routes.draw do
   get "users", to: "users#index", as: :users
   get "users/:plex_user_id", to: "users#show", as: :user
   patch "users/:plex_user_id/note", to: "users#update_note", as: :user_note
+  patch "users/:plex_user_id/suppression", to: "users#update_suppression", as: :user_suppression
   post "refresh", to: "shares#refresh", as: :refresh_shares
   post "shares", to: "shares#create"
   post "shares/bulk", to: "shares#bulk_update", as: :bulk_shares

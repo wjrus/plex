@@ -4,7 +4,7 @@ class UsersController < ApplicationController
 
   SORT_COLUMNS = %w[name last_streamed].freeze
   SORT_DIRECTIONS = %w[asc desc].freeze
-  helper_method :local_history_user?
+  helper_method :local_history_user?, :suppressed_user?
 
   def index
     @machine_identifier = required_machine_identifier
@@ -13,8 +13,8 @@ class UsersController < ApplicationController
     @direction = params[:direction].presence_in(SORT_DIRECTIONS) || default_direction_for(@sort)
     @report = @snapshot&.to_report
     @libraries = @report&.libraries || []
-    @all_users = users_with_local_stream_accounts(@report&.users || [])
     @filter_params = filter_params
+    @all_users = users_with_local_stream_accounts(@report&.users || [], include_suppressed: showing_suppressed?)
     @notes_by_user_id = PlexUserNote.for_users(@all_users)
     @pending_users = @all_users.select(&:pending)
     @users = sort_users(filter_users(@all_users))
@@ -39,7 +39,8 @@ class UsersController < ApplicationController
     @snapshot = ShareSnapshot.latest_for(@machine_identifier)
     @report = @snapshot&.to_report
     @libraries = @report&.libraries || []
-    @all_users = users_with_local_stream_accounts(@report&.users || [])
+    @all_users = users_with_local_stream_accounts(@report&.users || [], include_suppressed: true)
+    @notes_by_user_id = PlexUserNote.for_users(@all_users)
     @user = @all_users.find { |user| user.id.to_s == params[:plex_user_id].to_s }
     raise ActiveRecord::RecordNotFound, "Unknown Plex user" unless @user
 
@@ -63,10 +64,37 @@ class UsersController < ApplicationController
     redirect_to users_path, alert: error.message
   end
 
+  def update_suppression
+    @machine_identifier = required_machine_identifier
+    @snapshot = ShareSnapshot.latest_for(@machine_identifier)
+    @report = @snapshot&.to_report
+    @user = users_with_local_stream_accounts(@report&.users || [], include_suppressed: true)
+      .find { |user| user.id.to_s == params[:plex_user_id].to_s }
+    note = PlexUserNote.find_or_initialize_by(plex_user_id: params[:plex_user_id])
+    suppressing = truthy_param?(params[:suppressed])
+    note.assign_attributes(
+      username: note.username.presence || @user&.username,
+      email: note.email.presence || @user&.email,
+      suppressed: suppressing,
+      suppressed_at: suppressing ? Time.current : nil,
+      suppressed_by: suppressing ? current_admin_email : nil
+    )
+    note.save!
+    record_suppression_update(note, suppressing)
+
+    redirect_to suppression_redirect_path, notice: suppressing ? "User suppressed." : "User unsuppressed."
+  rescue ActiveRecord::ActiveRecordError => error
+    redirect_to users_path, alert: error.message
+  end
+
   private
 
   def note_params
     params.require(:plex_user_note).permit(:username, :email, :notes)
+  end
+
+  def truthy_param?(value)
+    value == true || value.to_s == "1" || value.to_s.casecmp("true").zero?
   end
 
   def load_stream_history
@@ -94,8 +122,24 @@ class UsersController < ApplicationController
     )
   end
 
+  def record_suppression_update(note, suppressing)
+    ShareAuditLog.record!(
+      action: suppressing ? "user_suppressed" : "user_unsuppressed",
+      admin_email: current_admin_email,
+      target: {
+        id: note.plex_user_id,
+        label: note.username.presence || note.email.presence || note.plex_user_id,
+        email: note.email
+      }
+    )
+  end
+
   def note_redirect_path
     url_from(params[:return_to]) || users_path(filter_params.merge(sort: params[:sort], direction: params[:direction]))
+  end
+
+  def suppression_redirect_path
+    url_from(params[:return_to]) || user_path(params[:plex_user_id])
   end
 
   def required_machine_identifier
@@ -110,6 +154,10 @@ class UsersController < ApplicationController
 
   def filter_params
     params.permit(:q, :status, :library_id, :notes, :streaming)
+  end
+
+  def showing_suppressed?
+    @filter_params[:status].to_s == "suppressed"
   end
 
   def filter_users(users)
@@ -129,13 +177,17 @@ class UsersController < ApplicationController
       .count
   end
 
-  def users_with_local_stream_accounts(users)
-    users + local_stream_users(excluding: users)
+  def users_with_local_stream_accounts(users, include_suppressed:)
+    users + local_stream_users(excluding: users, include_suppressed: include_suppressed)
   end
 
-  def local_stream_users(excluding:)
+  def local_stream_users(excluding:, include_suppressed:)
     excluded_ids = excluding.map { |user| user.id.to_s }.to_set
-    newest_stream_by_account_id(excluded_ids).map do |account_id, stream|
+    suppressed_ids = PlexUserNote.suppressed_ids
+    newest_stream_by_account_id(excluded_ids).filter_map do |account_id, stream|
+      suppressed = suppressed_ids.include?(account_id.to_s)
+      next if suppressed && !include_suppressed
+
       Plex::SharingReport::SharedUser.new(
         id: account_id,
         share_id: nil,
@@ -234,8 +286,10 @@ class UsersController < ApplicationController
       user.pending
     when "accepted"
       !user.pending && !local_history_user?(user)
+    when "suppressed"
+      suppressed_user?(user)
     else
-      true
+      !suppressed_user?(user)
     end
   end
 
@@ -287,6 +341,10 @@ class UsersController < ApplicationController
 
   def local_history_user?(user)
     !user.pending && user.share_id.blank? && user.libraries.empty? && user.last_streamed_at.present?
+  end
+
+  def suppressed_user?(user)
+    @notes_by_user_id[user.id.to_s]&.suppressed?
   end
 
   def user_status(user)

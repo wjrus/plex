@@ -36,7 +36,7 @@
       </div>
       <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
         <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Users</p>
-        <p class="mt-2 text-lg font-semibold text-white"><%= @report.users.size %></p>
+        <p class="mt-2 text-lg font-semibold text-white"><%= @visible_users.size %></p>
       </div>
       <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
         <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">Libraries</p>
@@ -111,7 +111,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-zinc-800">
-            <% @report.users.each do |user| %>
+            <% @visible_users.each do |user| %>
               <% note = @notes_by_user_id[user.id.to_s]&.notes %>
               <tr class="user-row-link align-top"
                 data-controller="row-link"

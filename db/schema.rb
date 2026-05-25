@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_25_002000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_25_003000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -41,6 +41,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_25_002000) do
     t.string "last_edited_by"
     t.text "notes"
     t.string "plex_user_id", null: false
+    t.boolean "suppressed", default: false, null: false
+    t.datetime "suppressed_at"
+    t.string "suppressed_by"
     t.datetime "updated_at", null: false
     t.string "username"
     t.index ["plex_user_id"], name: "index_plex_user_notes_on_plex_user_id", unique: true

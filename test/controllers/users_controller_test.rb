@@ -104,6 +104,44 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "td", text: "Columbo - Murder by the Book"
   end
 
+  test "can suppress and restore local history users" do
+    PlexStreamEvent.create!(
+      machine_identifier: "machine-one",
+      account_id: "old-account",
+      viewed_at: Time.zone.local(2026, 5, 24, 13, 0, 0),
+      full_title: "Old Stream",
+      media_type: "movie"
+    )
+
+    get users_path(q: "old-account")
+    assert_response :success
+    assert_select "td", text: "Account old-account"
+
+    patch user_suppression_path("old-account"), params: { suppressed: "1", return_to: user_path("old-account") }
+    assert_redirected_to user_path("old-account")
+
+    note = PlexUserNote.find_by!(plex_user_id: "old-account")
+    assert note.suppressed?
+    assert_equal "admin@example.com", note.suppressed_by
+
+    log = ShareAuditLog.recent.first
+    assert_equal "user_suppressed", log.action
+    assert_equal "suppressed old-account", log.summary
+
+    get users_path(q: "old-account")
+    assert_response :success
+    assert_select "td", text: "Account old-account", count: 0
+
+    get users_path(status: "suppressed", q: "old-account")
+    assert_response :success
+    assert_select "td", text: "Account old-account"
+    assert_select "span", text: "Suppressed"
+
+    patch user_suppression_path("old-account"), params: { suppressed: "0", return_to: user_path("old-account") }
+    assert_redirected_to user_path("old-account")
+    assert_not note.reload.suppressed?
+  end
+
   test "paginates stream history in a turbo frame" do
     30.times do |index|
       PlexStreamEvent.create!(

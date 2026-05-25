@@ -4,6 +4,7 @@ class SharesController < ApplicationController
     @snapshot = ShareSnapshot.latest_for(@machine_identifier)
     @report = @snapshot&.to_report
     @notes_by_user_id = PlexUserNote.for_users(@report&.users || [])
+    @visible_users = (@report&.users || []).reject { |user| @notes_by_user_id[user.id.to_s]&.suppressed? }
   rescue Plex::ConfigurationError => error
     @configuration_error = error.message
   rescue Plex::Client::Error, ActiveRecord::ActiveRecordError => error

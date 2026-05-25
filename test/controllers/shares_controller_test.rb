@@ -79,6 +79,16 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_select "a", text: "Open user", count: 0
   end
 
+  test "shares page hides suppressed users" do
+    PlexUserNote.find_or_create_by!(plex_user_id: "42").update!(suppressed: true)
+
+    get root_path
+
+    assert_response :success
+    assert_select "td", text: "Viewer", count: 0
+    assert_select "p", text: "0"
+  end
+
   test "admin queues an async refresh" do
     assert_enqueued_with(job: PlexRefreshJob) do
       post refresh_shares_path
