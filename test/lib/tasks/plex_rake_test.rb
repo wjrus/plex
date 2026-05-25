@@ -13,4 +13,10 @@ class PlexRakeTest < ActiveSupport::TestCase
 
     assert Rake::Task.task_defined?("plex:backfill_history")
   end
+
+  test "plex now playing sample task is defined" do
+    Rails.application.load_tasks if Rake::Task.tasks.none? { |task| task.name == "plex:sample_now_playing" }
+
+    assert Rake::Task.task_defined?("plex:sample_now_playing")
+  end
 end

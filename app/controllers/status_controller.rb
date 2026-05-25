@@ -12,6 +12,8 @@ class StatusController < ApplicationController
     @app_revision = app_revision
     @history_summary = @machine_identifier ? PlexStreamEvent.history_summary(@machine_identifier) : nil
     @last_backfill_refresh = refresh_scope.where(status: "completed", admin_email: "rake:backfill").latest_first.first
+    @now_playing_sample_count = @machine_identifier ? PlexNowPlayingSample.where(machine_identifier: @machine_identifier).count : 0
+    @latest_now_playing_sample = @machine_identifier ? PlexNowPlayingSample.where(machine_identifier: @machine_identifier).recent.first : nil
   end
 
   private

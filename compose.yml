@@ -62,6 +62,23 @@ services:
     volumes:
       - app_storage:/rails/storage
 
+  now_playing_sampler:
+    image: plex-admin:production
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      RAILS_ENV: production
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      PLEX_DATABASE_USERNAME: plex
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["bash", "./docker/now-playing-sampler"]
+    volumes:
+      - app_storage:/rails/storage
+
 volumes:
   postgres_data:
   app_storage:

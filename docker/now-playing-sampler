@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+interval="${PLEX_NOW_PLAYING_SAMPLE_INTERVAL:-60}"
+
+while true; do
+  echo "Sampling Plex now playing sessions"
+  if ./bin/rails plex:sample_now_playing; then
+    echo "Now playing sample completed"
+  else
+    echo "Now playing sample failed" >&2
+  fi
+
+  sleep "$interval"
+done

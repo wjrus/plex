@@ -10,9 +10,34 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_25_003000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_25_004000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "plex_now_playing_samples", force: :cascade do |t|
+    t.string "account_id"
+    t.datetime "created_at", null: false
+    t.integer "duration"
+    t.string "full_title"
+    t.string "ip_address"
+    t.string "library_title"
+    t.string "machine_identifier", null: false
+    t.string "media_type"
+    t.jsonb "metadata", default: {}, null: false
+    t.string "player_platform"
+    t.string "player_title"
+    t.integer "progress_percent"
+    t.string "rating_key"
+    t.datetime "sampled_at", null: false
+    t.string "session_id"
+    t.string "state"
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.string "user_label"
+    t.integer "view_offset"
+    t.index ["machine_identifier", "account_id", "sampled_at"], name: "index_now_playing_samples_on_machine_account_sampled"
+    t.index ["machine_identifier", "sampled_at"], name: "idx_on_machine_identifier_sampled_at_ee541fa62c"
+  end
 
   create_table "plex_stream_events", force: :cascade do |t|
     t.string "account_id", null: false

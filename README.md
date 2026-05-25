@@ -52,6 +52,7 @@ PLEX_HISTORY_DAYS=730
 PLEX_HISTORY_RETRIES=8
 PLEX_CLIENT_IDENTIFIER=plex-shares-local
 PLEX_CLIENT_NAME=Plex Shares
+PLEX_NOW_PLAYING_SAMPLE_INTERVAL=60
 PLEX_OWNER_ACCOUNT_ID=
 PLEX_OWNER_NAME=
 PLEX_OWNER_USERNAME=
@@ -98,6 +99,10 @@ after a Plex timeout before the task stops and prints the resume page.
 In Docker Compose production, the `daily_refresh` service runs the same rake task
 once per day with `PLEX_DAILY_REFRESH_DAYS=1`. Set `PLEX_DAILY_REFRESH_AT` in
 `.env.production` to choose the daily wall-clock time, using `HH:MM`.
+
+The `now_playing_sampler` Compose service records lightweight current-stream
+samples every `PLEX_NOW_PLAYING_SAMPLE_INTERVAL` seconds. This captures future
+player/IP data from the live sessions endpoint when Plex exposes it.
 
 ## Useful commands
 
