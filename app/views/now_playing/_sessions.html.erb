@@ -18,7 +18,10 @@
     <% @sessions.each do |stream| %>
       <% progress = Plex::StreamFormatter.progress_percent(stream) %>
       <% cover_url = plex_image_url(Plex::StreamFormatter.cover_path(stream)) %>
-      <article class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+      <article class="relative rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+        <span class="absolute right-5 top-5 inline-flex rounded-md border border-cyan-300/30 bg-cyan-300/10 px-2 py-1 text-xs font-semibold text-cyan-100">
+          <%= Plex::StreamFormatter.state(stream).titleize %>
+        </span>
         <div class="grid gap-4">
           <div class="flex gap-4">
             <div class="w-[7.25rem] shrink-0 overflow-hidden rounded-md border border-zinc-800 bg-zinc-900 aspect-[2/3]">
@@ -27,14 +30,11 @@
               <% end %>
             </div>
             <div class="min-w-0 flex-1">
-              <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div class="min-w-0 flex-1">
+              <div class="min-w-0 pr-20">
+                <div class="min-w-0">
                   <h2 class="truncate text-lg font-semibold text-white"><%= Plex::StreamFormatter.title(stream).presence || stream[:title].presence || "Unknown title" %></h2>
                   <p class="mt-1 text-sm text-zinc-400"><%= Plex::StreamFormatter.user_label(stream) %></p>
                 </div>
-                <span class="inline-flex shrink-0 rounded-md border border-cyan-300/30 bg-cyan-300/10 px-2 py-1 text-xs font-semibold text-cyan-100">
-                  <%= Plex::StreamFormatter.state(stream).titleize %>
-                </span>
               </div>
 
               <dl class="mt-4 grid gap-2 text-sm text-zinc-400">
