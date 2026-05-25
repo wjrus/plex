@@ -35,19 +35,6 @@
       </section>
       <% end %>
 
-    <% if @suppressed_user_count.positive? && @filter_params[:status] != "suppressed" %>
-      <section class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p class="text-sm text-zinc-400">
-            <%= pluralize(@suppressed_user_count, "suppressed user") %> hidden from default lists.
-          </p>
-          <%= link_to "View suppressed",
-            suppressed_users_path,
-            class: "inline-flex shrink-0 items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
-        </div>
-      </section>
-    <% end %>
-
     <section class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
       <%= form_with url: users_path, method: :get, class: "grid gap-3 lg:grid-cols-[minmax(14rem,1fr)_repeat(4,minmax(10rem,12rem))_auto]" do %>
         <div>
@@ -177,6 +164,19 @@
           <% end %>
         </tbody>
       </table>
+      </div>
+    </section>
+  <% end %>
+
+  <% if @snapshot.present? && @suppressed_user_count.positive? && @filter_params[:status] != "suppressed" %>
+    <section class="rounded-lg border border-zinc-800 bg-zinc-950 p-5">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm text-zinc-400">
+          <%= pluralize(@suppressed_user_count, "suppressed user") %> hidden from default lists.
+        </p>
+        <%= link_to "View suppressed",
+          suppressed_users_path,
+          class: "inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900 hover:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950" %>
       </div>
     </section>
   <% end %>
