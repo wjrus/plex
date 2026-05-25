@@ -16,6 +16,15 @@ module Plex
       [ player[:title], player[:platform] ].compact_blank.join(" · ").presence || "Unknown player"
     end
 
+    def ip_address(stream)
+      player = stream[:player] || {}
+      player[:address].presence ||
+        player[:remote_public_address].presence ||
+        player[:public_address].presence ||
+        stream[:ip_address].presence ||
+        stream[:address].presence
+    end
+
     def state(stream)
       player = stream[:player] || {}
       player[:state].presence || "unknown"

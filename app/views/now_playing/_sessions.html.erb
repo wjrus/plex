@@ -39,6 +39,7 @@
 
               <dl class="mt-4 grid gap-2 text-sm text-zinc-400">
                 <div><dt class="inline text-zinc-500">Player:</dt> <dd class="inline"><%= Plex::StreamFormatter.player_label(stream) %></dd></div>
+                <div><dt class="inline text-zinc-500">IP:</dt> <dd class="inline"><%= Plex::StreamFormatter.ip_address(stream).presence || "Unknown" %></dd></div>
                 <div><dt class="inline text-zinc-500">Library:</dt> <dd class="inline"><%= stream[:library_section_title].presence || "unknown" %></dd></div>
                 <div><dt class="inline text-zinc-500">Type:</dt> <dd class="inline"><%= stream[:type].presence || "unknown" %></dd></div>
                 <% if stream.dig(:session, :id).present? %>

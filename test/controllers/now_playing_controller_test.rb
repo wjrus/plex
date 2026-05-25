@@ -38,7 +38,7 @@ class NowPlayingControllerTest < ActionDispatch::IntegrationTest
             view_offset: "500",
             grandparent_thumb: "/library/metadata/1/thumb/123",
             user: { title: "Viewer" },
-            player: { title: "Apple TV", platform: "tvOS", state: "playing" },
+            player: { title: "Apple TV", platform: "tvOS", address: "192.0.2.10", state: "playing" },
             session: { id: "session-one" }
           }
         ]
@@ -55,6 +55,7 @@ class NowPlayingControllerTest < ActionDispatch::IntegrationTest
       assert_select "h2", "Taskmaster - The Noise That Blue Makes"
       assert_select "p", "Viewer"
       assert_select "dd", text: "Apple TV · tvOS"
+      assert_select "dd", text: "192.0.2.10"
       assert_select "p", text: "50% complete"
       assert_select "img[src*='/plex_cover']"
       assert_select "img[src*='%2Flibrary%2Fmetadata%2F1%2Fthumb%2F123']"
@@ -93,6 +94,33 @@ class NowPlayingControllerTest < ActionDispatch::IntegrationTest
       assert_select "h1", false
       assert_select "h2", "Feature"
       assert_select "p", text: "25% complete"
+    ensure
+      Plex::Client.define_singleton_method(:from_env) { original_from_env.call }
+    end
+  end
+
+  test "falls back to remote public address for now playing ip" do
+    client = Class.new do
+      def playback_sessions
+        [
+          {
+            title: "Feature",
+            type: "movie",
+            library_section_title: "Movies",
+            user: { title: "Viewer" },
+            player: { title: "Roku", platform: "Roku", remote_public_address: "198.51.100.20", state: "playing" }
+          }
+        ]
+      end
+    end.new
+
+    original_from_env = Plex::Client.method(:from_env)
+    begin
+      Plex::Client.define_singleton_method(:from_env) { client }
+      get now_playing_path
+
+      assert_response :success
+      assert_select "dd", text: "198.51.100.20"
     ensure
       Plex::Client.define_singleton_method(:from_env) { original_from_env.call }
     end
