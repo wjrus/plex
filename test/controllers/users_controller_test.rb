@@ -150,6 +150,8 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     get users_path(q: "old-account")
     assert_response :success
     assert_select "td", text: "Account old-account", count: 0
+    assert_select "p", text: /1 suppressed user/
+    assert_select "a", text: "View suppressed"
 
     get users_path(status: "suppressed", q: "old-account")
     assert_response :success

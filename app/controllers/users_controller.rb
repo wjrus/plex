@@ -17,6 +17,7 @@ class UsersController < ApplicationController
     @all_users = users_with_local_stream_accounts(@report&.users || [], include_suppressed: showing_suppressed?)
     @notes_by_user_id = PlexUserNote.for_users(@all_users)
     @pending_users = @all_users.select(&:pending)
+    @suppressed_user_count = PlexUserNote.where(suppressed: true).count
     @users = sort_users(filter_users(@all_users))
     @audit_counts_by_user_id = audit_counts_for(@users)
 
