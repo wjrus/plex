@@ -6,10 +6,11 @@ class PlexStreamEvent < ApplicationRecord
   scope :recent, -> { order(viewed_at: :desc, id: :desc) }
   scope :for_machine, ->(machine_identifier) { where(machine_identifier: machine_identifier) }
   scope :completed, -> { where("duration > 0 AND view_offset * 10 >= duration * 9") }
+  scope :completion_unknown, -> { where("duration IS NULL OR duration <= 0 OR view_offset IS NULL") }
 
   def self.completed_play_scope(scope = all)
     deduped_ids = scope
-      .completed
+      .where("duration IS NULL OR duration <= 0 OR view_offset IS NULL OR view_offset * 10 >= duration * 9")
       .select("DISTINCT ON (machine_identifier, account_id, COALESCE(NULLIF(rating_key, ''), full_title, title), DATE(viewed_at)) plex_stream_events.id")
       .order(Arel.sql("machine_identifier, account_id, COALESCE(NULLIF(rating_key, ''), full_title, title), DATE(viewed_at), viewed_at DESC, id DESC"))
 
@@ -42,6 +43,7 @@ class PlexStreamEvent < ApplicationRecord
         ip_address: stream_ip_address(stream),
         duration: stream[:duration].presence&.to_i,
         view_offset: stream[:view_offset].presence&.to_i,
+        metadata: stream,
         viewed_at: Time.zone.at(viewed_at.to_i),
         created_at: Time.current,
         updated_at: Time.current

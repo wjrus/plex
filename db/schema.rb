@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_25_004000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_25_193813) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -49,6 +49,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_25_004000) do
     t.string "library_title"
     t.string "machine_identifier", null: false
     t.string "media_type"
+    t.jsonb "metadata", default: {}, null: false
     t.string "player_platform"
     t.string "player_title"
     t.string "rating_key"
