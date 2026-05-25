@@ -37,7 +37,7 @@ class ShareAuditLog < ApplicationRecord
     CSV.generate(headers: true) do |csv|
       csv << [ "created_at", "admin_email", "action", "summary", "target", "target_email", "libraries_added", "libraries_removed", "libraries_after" ]
       logs.limit(10_000).each do |entry|
-        csv << [
+        csv << CsvSafety.row([
           entry.created_at.iso8601,
           entry.admin_email,
           entry.action,
@@ -47,7 +47,7 @@ class ShareAuditLog < ApplicationRecord
           entry.libraries_added.to_sentence,
           entry.libraries_removed.to_sentence,
           entry.libraries_after.to_sentence
-        ]
+        ])
       end
     end
   end

@@ -56,6 +56,7 @@ Fill in the remaining `.env.production` values:
 ```sh
 PLEX_HOST=plexadmin.example.com
 PLEX_HOSTS=plexadmin.example.com
+PLEX_FORCE_SSL=true
 ADMIN_USERS=admin@example.com
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
@@ -186,3 +187,7 @@ plex_postgres_data
 
 The app storage volume is currently only for Rails local storage; this app does
 not store Plex media there.
+
+PostgreSQL contains Plex sharing data, playback history, now-playing samples,
+raw Plex metadata payloads, device names, IP addresses, and local admin notes.
+Treat dumps and backups as sensitive data.

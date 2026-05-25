@@ -107,6 +107,19 @@ player/IP data from the live sessions endpoint when Plex exposes it. Samples
 older than `PLEX_NOW_PLAYING_RETENTION_DAYS` are pruned automatically by the
 sampler and can also be pruned from the Maintenance page.
 
+## Security Notes
+
+The app is intended to run behind Google OAuth and a TLS-terminating reverse
+proxy. Production defaults force SSL-aware cookies and HSTS; leave
+`PLEX_FORCE_SSL=true` unless you are debugging a local, non-public deployment.
+
+Playback history and now-playing samples can include Plex metadata, device
+names, IP addresses, session identifiers, and watch history. Treat database
+dumps and backups as sensitive admin data.
+
+CSV exports escape spreadsheet formula prefixes to avoid formula execution when
+opened in Excel, Numbers, or Google Sheets.
+
 ## Useful commands
 
 ```sh

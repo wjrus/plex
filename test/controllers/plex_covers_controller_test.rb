@@ -55,6 +55,37 @@ class PlexCoversControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "rejects unsupported cover paths" do
+    get plex_cover_path(path: "/status/sessions")
+
+    assert_response :not_found
+  end
+
+  test "rejects svg cover responses" do
+    response = Net::HTTPOK.new("1.1", "200", "OK")
+    response["Content-Type"] = "image/svg+xml"
+    response.instance_variable_set(:@body, "<svg></svg>")
+    response.instance_variable_set(:@read, true)
+    fake_http = Class.new do
+      define_method(:request) { |_request| response }
+    end.new
+
+    original_start = Net::HTTP.method(:start)
+    begin
+      Net::HTTP.define_singleton_method(:start) do |*args, **kwargs, &block|
+        block.call(fake_http)
+      end
+
+      get plex_cover_path(path: "/library/metadata/1/thumb/123")
+
+      assert_response :not_found
+    ensure
+      Net::HTTP.define_singleton_method(:start) do |*args, **kwargs, &block|
+        original_start.call(*args, **kwargs, &block)
+      end
+    end
+  end
+
   private
 
   def sign_in

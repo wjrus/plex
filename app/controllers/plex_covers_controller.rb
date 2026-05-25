@@ -2,11 +2,17 @@ require "net/http"
 require "uri"
 
 class PlexCoversController < ApplicationController
+  MAX_COVER_BYTES = 10.megabytes
+  ALLOWED_PATH_PREFIXES = [
+    "/library/metadata/",
+    "/photo/:/transcode"
+  ].freeze
+
   def show
     uri = cover_uri
     response = fetch_cover(uri)
 
-    if response.is_a?(Net::HTTPSuccess)
+    if valid_cover_response?(response)
       expires_in 1.hour, public: false
       send_data response.body,
         type: response["Content-Type"].presence || "image/jpeg",
@@ -25,6 +31,7 @@ class PlexCoversController < ApplicationController
   def cover_uri
     path = params.require(:path).to_s
     raise URI::InvalidURIError, "invalid Plex cover path" unless path.start_with?("/")
+    raise URI::InvalidURIError, "unsupported Plex cover path" unless allowed_cover_path?(path)
 
     base_url = ENV["PLEX_SERVER_BASE_URL"].to_s.delete_suffix("/")
     token = ENV["PLEX_TOKEN"].to_s
@@ -33,9 +40,22 @@ class PlexCoversController < ApplicationController
 
     uri = URI("#{base_url}#{path}")
     query = URI.decode_www_form(uri.query.to_s)
-    query << [ "X-Plex-Token", token ] unless query.any? { |key, _value| key == "X-Plex-Token" }
+    query.reject! { |key, _value| key == "X-Plex-Token" }
+    query << [ "X-Plex-Token", token ]
     uri.query = URI.encode_www_form(query)
     uri
+  end
+
+  def allowed_cover_path?(path)
+    ALLOWED_PATH_PREFIXES.any? { |prefix| path.start_with?(prefix) }
+  end
+
+  def valid_cover_response?(response)
+    return false unless response.is_a?(Net::HTTPSuccess)
+    return false if response.body.bytesize > MAX_COVER_BYTES
+
+    content_type = response["Content-Type"].to_s.split(";", 2).first.downcase
+    content_type.start_with?("image/") && content_type != "image/svg+xml"
   end
 
   def fetch_cover(uri)

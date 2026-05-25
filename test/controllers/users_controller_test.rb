@@ -303,6 +303,32 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, "viewer,viewer,viewer@example.com,accepted"
   end
 
+  test "escapes spreadsheet formula prefixes in users csv" do
+    ShareSnapshot.create!(
+      machine_identifier: "machine-one",
+      server: { name: "Local Plex" },
+      libraries: [],
+      users: [
+        {
+          id: "formula-user",
+          title: "=cmd",
+          username: "=cmd",
+          email: "+formula@example.com",
+          pending: false,
+          library_count: 0,
+          libraries: []
+        }
+      ],
+      fetched_at: Time.current
+    )
+
+    get users_path(format: :csv)
+
+    assert_response :success
+    assert_includes @response.body, "'=cmd"
+    assert_includes @response.body, "'+formula@example.com"
+  end
+
   test "admin can save local notes for a Plex user" do
     patch user_note_path("42"), params: {
       plex_user_note: {

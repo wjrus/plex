@@ -57,6 +57,21 @@ class ShareAuditLogsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "libraries_added"
   end
 
+  test "escapes spreadsheet formula prefixes in audit log csv" do
+    ShareAuditLog.create!(
+      action: "user_note_updated",
+      admin_email: "admin@example.com",
+      target_label: "=cmd",
+      target_email: "@formula.example"
+    )
+
+    get share_audit_logs_path(format: :csv)
+
+    assert_response :success
+    assert_includes response.body, "'=cmd"
+    assert_includes response.body, "'@formula.example"
+  end
+
   private
 
   def sign_in

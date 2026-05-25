@@ -377,7 +377,7 @@ class UsersController < ApplicationController
       csv << [ "name", "username", "email", "status", "last_streamed_at", "last_streamed_title", "libraries", "library_count", "has_notes", "audit_events" ]
       users.each do |user|
         note = @notes_by_user_id[user.id.to_s]
-        csv << [
+        csv << CsvSafety.row([
           user.label,
           user.username,
           user.email,
@@ -388,7 +388,7 @@ class UsersController < ApplicationController
           user.libraries.size,
           note&.notes.present?,
           @audit_counts_by_user_id.fetch(user.id.to_s, 0)
-        ]
+        ])
       end
     end
   end
@@ -397,7 +397,7 @@ class UsersController < ApplicationController
     CSV.generate(headers: true) do |csv|
       csv << [ "viewed_at", "title", "type", "library", "player", "ip_address", "rating_key" ]
       filtered_stream_scope.recent.each do |event|
-        csv << [
+        csv << CsvSafety.row([
           event.viewed_at.iso8601,
           event.label,
           event.media_type,
@@ -405,7 +405,7 @@ class UsersController < ApplicationController
           event.player_label == "Unknown" ? nil : event.player_label,
           event.ip_address,
           event.rating_key
-        ]
+        ])
       end
     end
   end
