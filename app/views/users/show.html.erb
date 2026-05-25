@@ -183,44 +183,7 @@
       </dialog>
     </div>
 
-    <section class="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">
-      <div class="border-b border-zinc-800 p-5">
-        <h2 class="text-lg font-semibold text-white">Stream History</h2>
-      </div>
-      <% if @stream_events.empty? %>
-        <p class="p-5 text-sm text-zinc-400">No local stream history for this user yet. Run a refresh with playback history to populate it.</p>
-      <% else %>
-        <table class="min-w-full divide-y divide-zinc-800 text-left text-sm">
-          <thead class="bg-zinc-900/80 text-xs uppercase tracking-wide text-zinc-400">
-            <tr>
-              <th class="px-4 py-3 font-semibold">When</th>
-              <th class="px-4 py-3 font-semibold">Cover</th>
-              <th class="px-4 py-3 font-semibold">Title</th>
-              <th class="px-4 py-3 font-semibold">Library</th>
-              <th class="px-4 py-3 font-semibold">Type</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-zinc-800">
-            <% @stream_events.each do |event| %>
-              <% cover_url = plex_image_url(event.cover_path) %>
-              <tr>
-                <td class="whitespace-nowrap px-4 py-3 text-zinc-300"><%= l(event.viewed_at, format: :long) %></td>
-                <td class="px-4 py-3">
-                  <div class="h-16 w-11 overflow-hidden rounded border border-zinc-800 bg-zinc-900">
-                    <% if cover_url.present? %>
-                      <img src="<%= cover_url %>" alt="" class="h-full w-full object-cover">
-                    <% end %>
-                  </div>
-                </td>
-                <td class="px-4 py-3 font-medium text-white"><%= event.label %></td>
-                <td class="px-4 py-3 text-zinc-300"><%= event.library_title.presence || "unknown" %></td>
-                <td class="px-4 py-3 text-zinc-400"><%= event.media_type.presence || "unknown" %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      <% end %>
-    </section>
+    <%= render "stream_history" %>
 
     <section class="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">
       <div class="border-b border-zinc-800 p-5">

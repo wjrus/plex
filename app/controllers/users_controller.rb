@@ -44,7 +44,7 @@ class UsersController < ApplicationController
     raise ActiveRecord::RecordNotFound, "Unknown Plex user" unless @user
 
     @note = PlexUserNote.find_by(plex_user_id: @user.id.to_s)
-    @stream_events = PlexStreamEvent.for_user(@machine_identifier, @user.id, limit: 25)
+    load_stream_history
     @audit_logs = ShareAuditLog.where(plex_user_id: @user.id.to_s).recent.limit(50)
   rescue Plex::ConfigurationError => error
     @configuration_error = error.message
@@ -67,6 +67,19 @@ class UsersController < ApplicationController
 
   def note_params
     params.require(:plex_user_note).permit(:username, :email, :notes)
+  end
+
+  def load_stream_history
+    @stream_per_page = 25
+    @stream_page = params.fetch(:stream_page, "1").to_i.clamp(1, 100_000)
+    scope = PlexStreamEvent.where(machine_identifier: @machine_identifier, account_id: @user.id.to_s).recent
+    @stream_events_count = scope.count
+    @stream_total_pages = [ (@stream_events_count.to_f / @stream_per_page).ceil, 1 ].max
+    @stream_page = [ @stream_page, @stream_total_pages ].min
+    @stream_offset = (@stream_page - 1) * @stream_per_page
+    @stream_events = scope.offset(@stream_offset).limit(@stream_per_page)
+    @stream_page_start = @stream_events_count.zero? ? 0 : @stream_offset + 1
+    @stream_page_end = [ @stream_offset + @stream_events.size, @stream_events_count ].min
   end
 
   def record_note_update(note)

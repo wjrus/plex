@@ -96,6 +96,36 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select "td", text: "Columbo - Murder by the Book"
   end
 
+  test "paginates stream history in a turbo frame" do
+    30.times do |index|
+      PlexStreamEvent.create!(
+        machine_identifier: "machine-one",
+        account_id: "42",
+        viewed_at: Time.zone.local(2026, 5, 24, 12, 0, 0) - index.minutes,
+        full_title: "History Item #{index + 1}",
+        library_title: "Movies",
+        media_type: "movie"
+      )
+    end
+
+    get user_path("42")
+
+    assert_response :success
+    assert_select "turbo-frame#stream_history"
+    assert_select "p", text: "Showing 1-25 of 30"
+    assert_select "td", text: "History Item 1"
+    assert_select "td", text: "History Item 26", count: 0
+    assert_select "a[data-turbo-frame='stream_history']", text: "Next"
+
+    get user_path("42", stream_page: 2)
+
+    assert_response :success
+    assert_select "p", text: "Showing 26-30 of 30"
+    assert_select "td", text: "History Item 26"
+    assert_select "td", text: "History Item 1", count: 0
+    assert_select "a[data-turbo-frame='stream_history']", text: "Previous"
+  end
+
   test "filters users by search and notes" do
     get users_path(q: "viewer", notes: "with")
 
