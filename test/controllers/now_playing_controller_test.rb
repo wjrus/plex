@@ -53,6 +53,7 @@ class NowPlayingControllerTest < ActionDispatch::IntegrationTest
       assert_response :success
       assert_select "h1", "Now Playing"
       assert_select "h2", "Playing"
+      assert_select "p", text: "1 active stream"
       assert_select "h3", "Taskmaster - The Noise That Blue Makes"
       assert_select "p", "Viewer"
       assert_select "dd", text: "Apple TV · tvOS"
@@ -167,8 +168,11 @@ class NowPlayingControllerTest < ActionDispatch::IntegrationTest
       body = @response.body
       assert_operator body.index("Newest Playing"), :<, body.index("Older Playing")
       assert_operator body.index("Older Playing"), :<, body.index("Paused Feature")
+      assert_no_match(/playings|pauseds/, body)
       assert_select "h2", "Playing"
+      assert_select "p", text: "2 active streams"
       assert_select "h2", "Paused"
+      assert_select "p", text: "1 paused stream"
     ensure
       Plex::Client.define_singleton_method(:from_env) { original_from_env.call }
     end
