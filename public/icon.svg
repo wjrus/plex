@@ -1,3 +1,5 @@
-<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="256" cy="256" r="256" fill="red"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Plex Shares</title>
+  <rect width="512" height="512" rx="112" fill="#141414"/>
+  <path fill="#E5A00D" d="M184 96h89.6L360 256 273.6 416H184l86.4-160L184 96Z"/>
 </svg>
