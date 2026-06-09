@@ -9,6 +9,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     @original_owner_name = ENV["PLEX_OWNER_NAME"]
     @original_owner_username = ENV["PLEX_OWNER_USERNAME"]
     @original_owner_email = ENV["PLEX_OWNER_EMAIL"]
+    travel_to Time.zone.local(2026, 5, 26, 12, 0, 0)
     ENV["PLEX_MACHINE_IDENTIFIER"] = "machine-one"
     ENV["ADMIN_USERS"] = "admin@example.com, coadmin@example.com"
     ENV.delete("ADMIN_USER")
@@ -24,6 +25,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     ENV["PLEX_OWNER_NAME"] = @original_owner_name
     ENV["PLEX_OWNER_USERNAME"] = @original_owner_username
     ENV["PLEX_OWNER_EMAIL"] = @original_owner_email
+    travel_back
     OmniAuth.config.mock_auth[:google_oauth2] = nil
     OmniAuth.config.test_mode = false
   end
@@ -217,7 +219,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert note.suppressed?
     assert_equal "admin@example.com", note.suppressed_by
 
-    log = ShareAuditLog.recent.first
+    log = ShareAuditLog.find_by!(action: "user_suppressed", plex_user_id: "old-account")
     assert_equal "user_suppressed", log.action
     assert_equal "suppressed old-account", log.summary
 
@@ -460,7 +462,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Keep an eye on shared access.", note.notes
     assert_equal "admin@example.com", note.last_edited_by
 
-    log = ShareAuditLog.recent.first
+    log = ShareAuditLog.find_by!(action: "user_note_updated", plex_user_id: "42")
     assert_equal "user_note_updated", log.action
     assert_equal "viewer", log.target_label
     assert_equal "admin@example.com", log.admin_email
@@ -489,5 +491,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     post "/auth/google_oauth2/callback", env: {
       "omniauth.auth" => OmniAuth.config.mock_auth[:google_oauth2]
     }
+
+    follow_redirect!
   end
 end

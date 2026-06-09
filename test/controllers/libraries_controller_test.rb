@@ -53,5 +53,7 @@ class LibrariesControllerTest < ActionDispatch::IntegrationTest
     post "/auth/google_oauth2/callback", env: {
       "omniauth.auth" => OmniAuth.config.mock_auth[:google_oauth2]
     }
+
+    follow_redirect!
   end
 end

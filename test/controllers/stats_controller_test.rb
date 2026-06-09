@@ -4,6 +4,7 @@ class StatsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @original_admin_users = ENV["ADMIN_USERS"]
     @original_machine_identifier = ENV["PLEX_MACHINE_IDENTIFIER"]
+    travel_to Time.zone.local(2026, 5, 26, 12, 0, 0)
     ENV["ADMIN_USERS"] = "admin@example.com"
     ENV["PLEX_MACHINE_IDENTIFIER"] = "machine-one"
     OmniAuth.config.test_mode = true
@@ -13,6 +14,7 @@ class StatsControllerTest < ActionDispatch::IntegrationTest
   teardown do
     ENV["ADMIN_USERS"] = @original_admin_users
     ENV["PLEX_MACHINE_IDENTIFIER"] = @original_machine_identifier
+    travel_back
     OmniAuth.config.mock_auth[:google_oauth2] = nil
     OmniAuth.config.test_mode = false
   end
@@ -101,5 +103,7 @@ class StatsControllerTest < ActionDispatch::IntegrationTest
     post "/auth/google_oauth2/callback", env: {
       "omniauth.auth" => OmniAuth.config.mock_auth[:google_oauth2]
     }
+
+    follow_redirect!
   end
 end
