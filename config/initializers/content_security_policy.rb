@@ -6,16 +6,11 @@
 
 Rails.application.configure do
   config.content_security_policy do |policy|
-    app_form_origins = ENV.fetch("PLEX_HOSTS", ENV.fetch("PLEX_HOST", "")).split(",").filter_map do |host|
-      host = host.strip
-      "https://#{host}" if host.present?
-    end
-
     policy.default_src :self
     policy.base_uri :self
     policy.connect_src :self
     policy.font_src :self, :data
-    policy.form_action :self, *app_form_origins
+    policy.form_action :self, :https
     policy.frame_ancestors :none
     policy.img_src :self, :https, :data
     policy.object_src :none
