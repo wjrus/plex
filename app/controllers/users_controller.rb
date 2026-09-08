@@ -248,10 +248,11 @@ class UsersController < ApplicationController
 
   def load_user_stream_stats
     scope = completed_stream_scope
+    total, first, last = scope.pick(Arel.sql("COUNT(*)"), Arel.sql("MIN(viewed_at)"), Arel.sql("MAX(viewed_at)"))
     @stream_stats = {
-      total: scope.count,
-      first: scope.minimum(:viewed_at),
-      last: scope.maximum(:viewed_at),
+      total: total,
+      first: first,
+      last: last,
       top_type: top_group_value(scope, :media_type),
       top_library: top_group_value(scope, :library_title)
     }
@@ -269,8 +270,8 @@ class UsersController < ApplicationController
   end
 
   def completed_stream_scope
-    scope = PlexStreamEvent.completed_video_play_scope(stream_scope, library_titles: @active_library_titles, library_ids: @active_library_ids)
-    @stats_period_start ? scope.where("viewed_at >= ?", @stats_period_start) : scope
+    PlexStreamEvent.completed_video_play_scope(stream_scope, library_titles: @active_library_titles,
+      library_ids: @active_library_ids, since: @stats_period_start)
   end
 
   def filtered_stream_scope
@@ -341,11 +342,7 @@ class UsersController < ApplicationController
 
   def user_daily_stats(scope)
     days = @stats_period == "30d" ? 30 : 7
-    counts_by_day = scope
-      .pluck(:viewed_at)
-      .each_with_object(Hash.new(0)) do |viewed_at, counts|
-        counts[viewed_at.to_date] += 1
-      end
+    counts_by_day = PlexStreamEvent.activity_counts(scope, bucket: "day")
 
     (days - 1).downto(0).map do |days_ago|
       day = days_ago.days.ago.to_date
@@ -356,11 +353,7 @@ class UsersController < ApplicationController
   def user_monthly_stats(scope)
     start_time = @stats_period_start || scope.minimum(:viewed_at)&.beginning_of_month || Time.current.beginning_of_month
     end_time = Time.current.beginning_of_month
-    counts_by_month = scope
-      .pluck(:viewed_at)
-      .each_with_object(Hash.new(0)) do |viewed_at, counts|
-        counts[viewed_at.beginning_of_month.to_date] += 1
-      end
+    counts_by_month = PlexStreamEvent.activity_counts(scope, bucket: "month")
 
     months = []
     cursor = start_time.beginning_of_month
@@ -375,15 +368,13 @@ class UsersController < ApplicationController
   end
 
   def aggregate_title_stats(scope, limit:)
+    title = Arel.sql(PlexStreamEvent::AGGREGATE_TITLE_SQL)
     scope
-      .recent
-      .to_a
-      .group_by(&:aggregate_title)
-      .map do |title, events|
-        { label: title, plays: events.size, latest: events.map(&:viewed_at).max }
-      end
-      .sort_by { |stat| [ -stat[:plays], stat[:label].downcase ] }
-      .first(limit)
+      .group(title)
+      .order(Arel.sql("COUNT(*) DESC, LOWER(#{PlexStreamEvent::AGGREGATE_TITLE_SQL}) ASC"))
+      .limit(limit)
+      .pluck(title, Arel.sql("COUNT(*)"), Arel.sql("MAX(viewed_at)"))
+      .map { |label, plays, latest| { label: label, plays: plays, latest: latest } }
   end
 
   def top_group_value(scope, column)

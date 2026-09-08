@@ -34,20 +34,21 @@ class StatsController < ApplicationController
   private
 
   def period_summary
-    scope = completed_event_scope
+    count, oldest, newest = completed_event_scope.pick(Arel.sql("COUNT(*)"), Arel.sql("MIN(viewed_at)"), Arel.sql("MAX(viewed_at)"))
     {
-      completed_plays: scope.count,
-      oldest: scope.minimum(:viewed_at),
-      newest: scope.maximum(:viewed_at)
+      completed_plays: count,
+      oldest: oldest,
+      newest: newest
     }
   end
 
   def library_stats
+    identifier = Arel.sql(PlexStreamEvent::LIBRARY_IDENTIFIER_SQL)
     completed_event_scope
-      .to_a
-      .group_by(&:library_identifier)
-      .map do |identifier, events|
-        { label: @library_labels_by_identifier.fetch(identifier.to_s, identifier.to_s), plays: events.size, users: events.map(&:account_id).uniq.size, latest: events.map(&:viewed_at).max }
+      .group(identifier)
+      .pluck(identifier, Arel.sql("COUNT(*)"), Arel.sql("COUNT(DISTINCT account_id)"), Arel.sql("MAX(viewed_at)"))
+      .map do |key, plays, users, latest|
+        { label: @library_labels_by_identifier.fetch(key.to_s, key.to_s), plays: plays, users: users, latest: latest }
       end
       .sort_by { |stat| [ -stat[:plays], stat[:label].downcase ] }
       .first(12)
@@ -74,11 +75,7 @@ class StatsController < ApplicationController
 
   def daily_activity_stats
     days = @stats_period == "30d" ? 30 : 7
-    counts_by_day = completed_event_scope
-      .pluck(:viewed_at)
-      .each_with_object(Hash.new(0)) do |viewed_at, counts|
-        counts[viewed_at.to_date] += 1
-      end
+    counts_by_day = PlexStreamEvent.activity_counts(completed_event_scope, bucket: "day")
 
     (days - 1).downto(0).map do |days_ago|
       day = days_ago.days.ago.to_date
@@ -90,11 +87,7 @@ class StatsController < ApplicationController
     scope = completed_event_scope
     start_time = @stats_period_start || scope.minimum(:viewed_at)&.beginning_of_month || Time.current.beginning_of_month
     end_time = Time.current.beginning_of_month
-    counts_by_month = scope
-      .pluck(:viewed_at)
-      .each_with_object(Hash.new(0)) do |viewed_at, counts|
-        counts[viewed_at.beginning_of_month.to_date] += 1
-      end
+    counts_by_month = PlexStreamEvent.activity_counts(scope, bucket: "month")
 
     months = []
     cursor = start_time.beginning_of_month
@@ -155,8 +148,8 @@ class StatsController < ApplicationController
   end
 
   def completed_event_scope
-    scope = PlexStreamEvent.completed_video_play_scope(event_scope, library_titles: @active_library_titles, library_ids: @active_library_ids)
-    @stats_period_start ? scope.where("viewed_at >= ?", @stats_period_start) : scope
+    PlexStreamEvent.completed_video_play_scope(event_scope, library_titles: @active_library_titles,
+      library_ids: @active_library_ids, since: @stats_period_start)
   end
 
   def required_machine_identifier

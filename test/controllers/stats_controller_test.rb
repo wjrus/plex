@@ -89,6 +89,21 @@ class StatsControllerTest < ActionDispatch::IntegrationTest
     assert_select "p", text: "2"
   end
 
+  test "all time charts do not instantiate event records" do
+    PlexStreamEvent.create!(machine_identifier: "machine-one", account_id: "42", library_title: "Movies",
+      media_type: "movie", duration: 1000, view_offset: 950, viewed_at: Time.current)
+    instantiated = 0
+    subscriber = ActiveSupport::Notifications.subscribe("instantiation.active_record") do |*args|
+      payload = args.last
+      instantiated += payload[:record_count] if payload[:class_name] == "PlexStreamEvent"
+    end
+    get stats_path(period: "all")
+    assert_response :success
+    assert_equal 0, instantiated
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscriber)
+  end
+
   private
 
   def sign_in

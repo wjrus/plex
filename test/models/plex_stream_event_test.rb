@@ -179,4 +179,20 @@ class PlexStreamEventTest < ActiveSupport::TestCase
 
     assert_equal "Show", event.aggregate_title
   end
+
+  test "stats period is applied inside the deduplication query" do
+    since = Time.zone.local(2026, 5, 24)
+    scope = PlexStreamEvent.completed_video_play_scope(library_titles: [ "Movies" ], library_ids: [], since: since)
+    inner_sql = scope.to_sql.split(" IN (", 2).last
+    assert_includes inner_sql, "viewed_at >="
+  end
+
+  test "SQL activity buckets respect the application timezone" do
+    Time.use_zone("America/New_York") do
+      event = PlexStreamEvent.create!(machine_identifier: "synthetic-zone", account_id: "42",
+        viewed_at: Time.utc(2026, 1, 2, 1), media_type: "movie")
+      counts = PlexStreamEvent.activity_counts(PlexStreamEvent.where(id: event.id), bucket: "day")
+      assert_equal({ Date.new(2026, 1, 1) => 1 }, counts)
+    end
+  end
 end

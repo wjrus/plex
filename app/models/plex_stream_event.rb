@@ -1,5 +1,11 @@
 class PlexStreamEvent < ApplicationRecord
   COMPLETION_THRESHOLD = 0.9
+  LIBRARY_IDENTIFIER_SQL = "COALESCE(NULLIF(library_title, ''), NULLIF(metadata->>'library_section_id', ''), 'unknown')".freeze
+  AGGREGATE_TITLE_SQL = <<~SQL.squish.freeze
+    CASE WHEN media_type = 'episode' THEN
+      COALESCE(NULLIF(metadata->>'grandparent_title', ''), NULLIF(split_part(full_title, ' - ', 1), ''), NULLIF(title, ''), 'Unknown series')
+    ELSE COALESCE(NULLIF(title, ''), NULLIF(full_title, ''), 'Unknown title') END
+  SQL
 
   validates :machine_identifier, :account_id, :viewed_at, presence: true
 
@@ -25,8 +31,17 @@ class PlexStreamEvent < ApplicationRecord
     where(id: deduped_ids)
   end
 
-  def self.completed_video_play_scope(scope = all, library_titles:, library_ids:)
+  def self.completed_video_play_scope(scope = all, library_titles:, library_ids:, since: nil)
+    scope = scope.where("viewed_at >= ?", since) if since
     completed_play_scope(scope.video.in_active_libraries(library_titles: library_titles, library_ids: library_ids))
+  end
+
+  def self.activity_counts(scope, bucket:)
+    raise ArgumentError, "Unsupported activity bucket" unless %w[day month].include?(bucket)
+
+    zone = connection.quote(Time.zone.tzinfo.name)
+    expression = Arel.sql("date_trunc('#{bucket}', viewed_at AT TIME ZONE 'UTC' AT TIME ZONE #{zone})::date")
+    scope.group(expression).count
   end
 
   def library_identifier
