@@ -45,6 +45,9 @@ jobs:
       - name: Scan for security vulnerabilities in JavaScript dependencies
         run: bin/importmap audit
 
+      - name: Test JavaScript controllers
+        run: node --experimental-vm-modules --test test/javascript/*_test.mjs
+
   lint:
     runs-on: ubuntu-latest
     env:
