@@ -13,6 +13,7 @@ class ApplicationController < ActionController::Base
   def require_admin!
     return if admin_signed_in?
 
+    reset_session
     redirect_to sign_in_path
   end
 
@@ -21,7 +22,8 @@ class ApplicationController < ActionController::Base
   end
 
   def current_admin_email
-    session[:admin_email].presence
+    email = session[:admin_email].presence
+    email if email && admin_email_allowed?(email)
   end
 
   def admin_email_allowed?(email)
