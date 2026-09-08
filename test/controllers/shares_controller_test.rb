@@ -171,6 +171,21 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "Movies" ], log.libraries_removed
   end
 
+  test "successful invitation is logged and cached even when refresh fails" do
+    client = FakeClient.new
+    client.define_singleton_method(:server) { |_| raise Plex::Client::Error, "Synthetic timeout" }
+    with_plex_client(client) do
+      assert_difference "ShareAuditLog.count" do
+        post shares_path, params: { invited_email: "viewer@example.com", library_ids: [ "1" ] }
+      end
+    end
+
+    assert client.created_invite
+    assert_redirected_to user_path("invite-one")
+    assert_match "Invite sent", flash[:alert]
+    assert ShareSnapshot.latest_for("machine-one").users.any? { |user| user["id"] == "invite-one" }
+  end
+
   test "admin can update libraries and records changed libraries" do
     ShareSnapshot.create!(
       machine_identifier: "machine-one",

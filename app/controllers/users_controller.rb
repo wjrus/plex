@@ -80,8 +80,10 @@ class UsersController < ApplicationController
   def update_note
     note = PlexUserNote.find_or_initialize_by(plex_user_id: params[:plex_user_id])
     note.assign_attributes(note_params.merge(last_edited_by: current_admin_email))
-    note.save!
-    record_note_update(note) if note.saved_change_to_notes?
+    PlexUserNote.transaction do
+      note.save!
+      record_note_update(note) if note.saved_change_to_notes?
+    end
 
     redirect_to note_redirect_path, notice: "User note saved."
   rescue ActiveRecord::ActiveRecordError => error
@@ -103,8 +105,10 @@ class UsersController < ApplicationController
       suppressed_at: suppressing ? Time.current : nil,
       suppressed_by: suppressing ? current_admin_email : nil
     )
-    note.save!
-    record_suppression_update(note, suppressing)
+    PlexUserNote.transaction do
+      note.save!
+      record_suppression_update(note, suppressing)
+    end
 
     redirect_to suppression_redirect_path, notice: suppressing ? "User suppressed." : "User unsuppressed."
   rescue ActiveRecord::ActiveRecordError => error

@@ -469,6 +469,18 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "updated notes for viewer", log.summary
   end
 
+  test "note changes roll back if audit recording fails" do
+    note = PlexUserNote.find_or_create_by!(plex_user_id: "42")
+    note.update!(notes: "Original note")
+    original_record = ShareAuditLog.method(:record!)
+    ShareAuditLog.define_singleton_method(:record!) { |**_| raise ActiveRecord::RecordInvalid }
+
+    patch user_note_path("42"), params: { plex_user_note: { notes: "Changed note" } }
+    assert_equal "Original note", note.reload.notes
+  ensure
+    ShareAuditLog.define_singleton_method(:record!, original_record)
+  end
+
   private
 
   def with_plex_client(client)

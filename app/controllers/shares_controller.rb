@@ -49,8 +49,6 @@ class SharesController < ApplicationController
       library_ids,
       allow_sync: truthy_param?(params[:allow_sync])
     )
-    refresh_snapshot(include_history: false)
-    pending_user = ensure_cached_pending_invite(invited_email, selected_libraries, invite_response, allow_sync: truthy_param?(params[:allow_sync]))
     ShareAuditLog.record!(
       action: "library_access_granted",
       admin_email: current_admin_email,
@@ -59,6 +57,13 @@ class SharesController < ApplicationController
       libraries_after: selected_libraries,
       metadata: { allow_sync: truthy_param?(params[:allow_sync]) }
     )
+
+    begin
+      refresh_snapshot(include_history: false)
+    rescue Plex::ConfigurationError, Plex::Client::Error, ActiveRecord::ActiveRecordError
+      flash[:alert] = "Invite sent, but the Plex refresh failed. Retry from Maintenance."
+    end
+    pending_user = ensure_cached_pending_invite(invited_email, selected_libraries, invite_response, allow_sync: truthy_param?(params[:allow_sync]))
 
     redirect_to pending_user ? user_path(pending_user["id"]) : root_path, notice: "Plex invite sent."
   rescue Plex::ConfigurationError, Plex::Client::Error, ActiveRecord::ActiveRecordError => error
@@ -79,8 +84,8 @@ class SharesController < ApplicationController
       client.remove_shared_server(required_machine_identifier, params[:share_id])
     end
 
-    update_cached_share(params[:share_id], library_ids)
     record_share_update(params[:share_id], current_user, previous_libraries, selected_libraries)
+    update_cached_share(params[:share_id], library_ids)
     redirect_to share_redirect_path, notice: "Plex share updated."
   rescue Plex::ConfigurationError, Plex::Client::Error, ActiveRecord::ActiveRecordError => error
     redirect_to share_redirect_path, alert: error.message
@@ -110,7 +115,6 @@ class SharesController < ApplicationController
     previous_libraries = current_user_libraries(current_user)
     client = Plex::Client.from_env
     client.remove_shared_server(required_machine_identifier, params[:share_id])
-    update_cached_share(params[:share_id], [])
     ShareAuditLog.record!(
       action: "library_access_removed",
       admin_email: current_admin_email,
@@ -118,6 +122,7 @@ class SharesController < ApplicationController
       share_id: params[:share_id],
       libraries_removed: previous_libraries
     )
+    update_cached_share(params[:share_id], [])
 
     redirect_to root_path, notice: "Plex share removed."
   rescue Plex::ConfigurationError, Plex::Client::Error, ActiveRecord::ActiveRecordError => error
@@ -146,13 +151,13 @@ class SharesController < ApplicationController
     end
     raise Plex::Client::Error, "Plex still reports this pending invite after cancellation." if pending_invite_still_reported?(client, pending_user)
 
-    update_cached_invite(params[:invite_id])
     ShareAuditLog.record!(
       action: "pending_invite_canceled",
       admin_email: current_admin_email,
       target: audit_target(pending_user),
       libraries_removed: current_user_libraries(pending_user)
     )
+    update_cached_invite(params[:invite_id])
 
     redirect_to root_path, notice: "Pending Plex invite canceled."
   rescue Plex::ConfigurationError, Plex::Client::Error, ActiveRecord::ActiveRecordError => error
@@ -349,8 +354,8 @@ class SharesController < ApplicationController
       else
         client.remove_shared_server(required_machine_identifier, user["share_id"])
       end
-      update_cached_share(user["share_id"], selected_libraries.map { |selected| selected["id"].to_s })
       record_share_update(user["share_id"], user, previous_libraries, selected_libraries)
+      update_cached_share(user["share_id"], selected_libraries.map { |selected| selected["id"].to_s })
       changed_count += 1
     end
 
