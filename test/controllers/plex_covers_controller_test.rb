@@ -28,12 +28,13 @@ class PlexCoversControllerTest < ActionDispatch::IntegrationTest
     response["Content-Type"] = "image/jpeg"
     response.instance_variable_set(:@body, "jpeg-bytes")
     response.instance_variable_set(:@read, true)
+    response.define_singleton_method(:read_body) { |&block| block.call("jpeg-bytes") }
     fake_http = Class.new do
-      define_method(:request) do |request|
+      define_method(:request) do |request, &block|
         raise "missing Plex token" unless request.uri.query.include?("X-Plex-Token=token")
         raise "wrong cover path" unless request.uri.path == "/library/metadata/1/thumb/123"
 
-        response
+        block.call(response)
       end
     end.new
 
@@ -67,7 +68,7 @@ class PlexCoversControllerTest < ActionDispatch::IntegrationTest
     response.instance_variable_set(:@body, "<svg></svg>")
     response.instance_variable_set(:@read, true)
     fake_http = Class.new do
-      define_method(:request) { |_request| response }
+      define_method(:request) { |_request, &block| block.call(response) }
     end.new
 
     original_start = Net::HTTP.method(:start)
@@ -86,7 +87,41 @@ class PlexCoversControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "rejects oversized declared content before reading it" do
+    response = Net::HTTPOK.new("1.1", "200", "OK")
+    response["Content-Type"] = "image/jpeg"
+    response["Content-Length"] = (PlexCoversController::MAX_COVER_BYTES + 1).to_s
+    response.define_singleton_method(:read_body) { raise "Body should not be read" }
+    with_cover_response(response) { get plex_cover_path(path: "/library/metadata/1/thumb/123") }
+    assert_response :not_found
+  end
+
+  test "aborts chunked covers at the byte limit without draining the response" do
+    response = Net::HTTPOK.new("1.1", "200", "OK")
+    response["Content-Type"] = "image/jpeg"
+    chunks_read = 0
+    response.define_singleton_method(:read_body) do |&block|
+      [ "x" * PlexCoversController::MAX_COVER_BYTES, "x", "never-read" ].each do |chunk|
+        chunks_read += 1
+        block.call(chunk)
+      end
+    end
+    with_cover_response(response) { get plex_cover_path(path: "/library/metadata/1/thumb/123") }
+    assert_response :not_found
+    assert_equal 2, chunks_read
+  end
+
   private
+
+  def with_cover_response(response)
+    http = Object.new
+    http.define_singleton_method(:request) { |_request, &block| block.call(response) }
+    original = Net::HTTP.method(:start)
+    Net::HTTP.define_singleton_method(:start) { |*_, **_, &block| block.call(http) }
+    yield
+  ensure
+    Net::HTTP.define_singleton_method(:start, original)
+  end
 
   def sign_in
     OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(

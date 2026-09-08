@@ -2,6 +2,8 @@ require "net/http"
 require "uri"
 
 class PlexCoversController < ApplicationController
+  class InvalidCover < StandardError; end
+  Cover = Data.define(:body, :content_type)
   MAX_COVER_BYTES = 10.megabytes
   ALLOWED_PATH_PREFIXES = [
     "/library/metadata/",
@@ -10,19 +12,12 @@ class PlexCoversController < ApplicationController
 
   def show
     uri = cover_uri
-    response = fetch_cover(uri)
-
-    if valid_cover_response?(response)
-      expires_in 1.hour, public: false
-      send_data response.body,
-        type: response["Content-Type"].presence || "image/jpeg",
-        disposition: "inline"
-    else
-      head :not_found
-    end
-  rescue Plex::ConfigurationError, URI::InvalidURIError
+    cover = fetch_cover(uri)
+    expires_in 1.hour, public: false
+    send_data cover.body, type: cover.content_type, disposition: "inline"
+  rescue InvalidCover, Plex::ConfigurationError, URI::InvalidURIError
     head :not_found
-  rescue SocketError, Timeout::Error, Errno::ECONNREFUSED, Errno::ETIMEDOUT
+  rescue SocketError, Timeout::Error, Errno::ECONNREFUSED, Errno::ETIMEDOUT, OpenSSL::SSL::SSLError
     head :bad_gateway
   end
 
@@ -50,9 +45,9 @@ class PlexCoversController < ApplicationController
     ALLOWED_PATH_PREFIXES.any? { |prefix| path.start_with?(prefix) }
   end
 
-  def valid_cover_response?(response)
+  def valid_cover_headers?(response)
     return false unless response.is_a?(Net::HTTPSuccess)
-    return false if response.body.bytesize > MAX_COVER_BYTES
+    return false if response["Content-Length"].to_i > MAX_COVER_BYTES
 
     content_type = response["Content-Type"].to_s.split(";", 2).first.downcase
     content_type.start_with?("image/") && content_type != "image/svg+xml"
@@ -69,7 +64,17 @@ class PlexCoversController < ApplicationController
     ) do |http|
       request = Net::HTTP::Get.new(uri)
       request["Accept"] = "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"
-      http.request(request)
+      http.request(request) do |response|
+        raise InvalidCover unless valid_cover_headers?(response)
+
+        body = +"".b
+        response.read_body do |chunk|
+          raise InvalidCover if body.bytesize + chunk.bytesize > MAX_COVER_BYTES
+
+          body << chunk
+        end
+        return Cover.new(body: body, content_type: response["Content-Type"])
+      end
     end
   end
 end
