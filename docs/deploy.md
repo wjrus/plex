@@ -101,6 +101,16 @@ by `scripts/deploy`; start it explicitly if you want current-session samples:
 docker compose up -d now_playing_sampler
 ```
 
+## Dependency Updates
+
+Ruby is pinned to 3.4.10 in both `.ruby-version` and the Dockerfile. Rebuild the
+image through the normal deploy script to pick up runtime and locked gem updates.
+
+Solid Queue 1.7 supports the existing queue schema for ordinary jobs. This app
+does not use its new batch API, so the optional batch migration is not included.
+The dispatcher may log a pending-migration deprecation warning; the batch tables
+will be required before a future upgrade to Solid Queue 2.0.
+
 ## Nginx Reverse Proxy
 
 Use a vhost for `plexadmin.example.com` that terminates TLS and proxies to the local

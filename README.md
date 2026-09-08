@@ -8,6 +8,9 @@ Plex. Use the Maintenance page when you need to refresh Plex data on demand.
 
 ## Setup
 
+Install the Ruby version in `.ruby-version` (currently 3.4.10), PostgreSQL, and
+libvips before running the local setup.
+
 ```sh
 cp .env.example .env
 bin/setup
@@ -179,9 +182,13 @@ opened in Excel, Numbers, or Google Sheets.
 bin/rails test
 bin/rubocop
 bundle exec brakeman -q --no-pager
-bundle exec bundle-audit check
+bin/bundler-audit
+bin/importmap audit
 bin/rails restart
 ```
+
+`bin/bundler-audit` refreshes the advisory database before checking the locked
+gems. It requires network access and fails if the database cannot be updated.
 
 Production helper scripts:
 
