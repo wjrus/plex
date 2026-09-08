@@ -13,6 +13,12 @@ module Plex
         include_history: include_history, progress: method(:record_history_page)
       ).history_streams
 
+      ShareSnapshot.with_server_lock(machine_identifier) { refresh_shares }
+    end
+
+    private
+
+    def refresh_shares
       report = SharingReport.new(
         client: client,
         machine_identifier: machine_identifier,
@@ -29,8 +35,6 @@ module Plex
         fetched_at: report.generated_at
       )
     end
-
-    private
 
     attr_reader :client, :machine_identifier, :progress, :include_history
 

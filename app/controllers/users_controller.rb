@@ -143,6 +143,11 @@ class UsersController < ApplicationController
   end
 
   def cache_pending_invite_for(identifier)
+    ShareSnapshot.with_server_lock(@machine_identifier) { lookup_pending_invite(identifier) }
+  end
+
+  def lookup_pending_invite(identifier)
+    @snapshot = ShareSnapshot.latest_for(@machine_identifier)
     requested = identifier.to_s.downcase
     return unless requested.include?("@") && @snapshot
 

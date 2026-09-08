@@ -1,13 +1,42 @@
 class ShareSnapshot < ApplicationRecord
+  class BusyError < Plex::ConfigurationError; end
+
   validates :machine_identifier, :fetched_at, presence: true
 
-  scope :latest_first, -> { order(fetched_at: :desc, created_at: :desc) }
+  scope :latest_first, -> { order(fetched_at: :desc, created_at: :desc, id: :desc) }
+
+  def self.with_server_lock(machine_identifier)
+    connection_pool.with_connection do |connection|
+      key = connection.quote("plex:shares:#{machine_identifier}")
+      lock = "hashtextextended(#{key}, 0)"
+      acquired = connection.uncached { connection.select_value("SELECT pg_try_advisory_lock(#{lock})") }
+      raise BusyError, "Another Plex access update is in progress. Please try again shortly." unless acquired
+
+      # A session lock serializes API/cache writes without rolling back audit entries.
+      begin
+        yield
+      ensure
+        connection.uncached { connection.select_value("SELECT pg_advisory_unlock(#{lock})") }
+      end
+    end
+  end
+
+  def self.library_version(library_ids)
+    Digest::SHA256.hexdigest(library_ids.map(&:to_s).sort.to_json)
+  end
 
   def self.latest_for(machine_identifier)
     where(machine_identifier: machine_identifier).latest_first.first
   end
 
   def self.checkpoint_streams!(machine_identifier, streams)
+    with_server_lock(machine_identifier) { write_stream_checkpoint!(machine_identifier, streams) }
+  rescue BusyError
+    # Events are already durable; the final refresh will recover their timestamps.
+    nil
+  end
+
+  def self.write_stream_checkpoint!(machine_identifier, streams)
     snapshot = latest_for(machine_identifier)
     return unless snapshot && streams.present?
 
@@ -34,6 +63,7 @@ class ShareSnapshot < ApplicationRecord
       fetched_at: Time.current
     )
   end
+  private_class_method :write_stream_checkpoint!
 
   def to_report
     Plex::SharingReport::Report.new(

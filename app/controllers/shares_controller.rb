@@ -2,6 +2,8 @@ require "json"
 require "rexml/document"
 
 class SharesController < ApplicationController
+  around_action :serialize_share_changes, only: %i[create update destroy destroy_invite bulk_update refresh]
+
   def index
     @machine_identifier = required_machine_identifier
     @snapshot = ShareSnapshot.latest_for(@machine_identifier)
@@ -75,6 +77,10 @@ class SharesController < ApplicationController
     snapshot = ShareSnapshot.latest_for(required_machine_identifier)
     current_user = snapshot_user_for_share(snapshot, params[:share_id])
     previous_libraries = current_user_libraries(current_user)
+    expected_version = ShareSnapshot.library_version(previous_libraries.map { |library| library["id"] })
+    unless current_user && params[:library_version] == expected_version
+      raise Plex::ConfigurationError, "Library access has changed. Reload this user before saving."
+    end
     selected_libraries = libraries_for_ids(snapshot, library_ids)
     client = Plex::Client.from_env
 
@@ -165,6 +171,12 @@ class SharesController < ApplicationController
   end
 
   private
+
+  def serialize_share_changes(&action)
+    ShareSnapshot.with_server_lock(required_machine_identifier, &action)
+  rescue Plex::ConfigurationError => error
+    redirect_to root_path, alert: error.message
+  end
 
   def refresh_snapshot(include_history: true)
     Plex::SnapshotRefresh.new(

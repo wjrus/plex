@@ -211,7 +211,7 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
 
     client = FakeClient.new
     with_plex_client(client) do
-      patch share_path("99"), params: { library_ids: [ "2" ] }
+      patch share_path("99"), params: { library_ids: [ "2" ], library_version: ShareSnapshot.library_version([ "1" ]) }
     end
 
     assert_redirected_to root_path
@@ -257,6 +257,15 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     log = ShareAuditLog.recent.first
     assert_equal "libraries_added", log.action
     assert_equal [ "Theatre" ], log.libraries_added
+  end
+
+  test "rejects a stale library form before calling Plex" do
+    client = FakeClient.new
+    with_plex_client(client) do
+      patch share_path("99"), params: { library_ids: [ "1" ], library_version: ShareSnapshot.library_version([ "old-library" ]) }
+    end
+    assert_nil client.updated_share
+    assert_match "Reload this user", flash[:alert]
   end
 
   test "admin can cancel pending invite with email id" do

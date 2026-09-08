@@ -89,6 +89,7 @@
             } do %>
             <%= hidden_field_tag :return_to, user_path(@user.id) %>
             <% selected_library_ids = @user.libraries.map { |library| library.id.to_s } %>
+            <%= hidden_field_tag :library_version, ShareSnapshot.library_version(selected_library_ids) %>
             <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               <% @libraries.each do |library| %>
                 <% input_id = "share_#{@user.share_id}_library_#{library.id}" %>
