@@ -103,9 +103,9 @@
               <tr>
                 <td class="whitespace-nowrap px-4 py-3 text-zinc-300"><%= l(event.viewed_at, format: :long) %></td>
                 <td class="px-4 py-3">
-                  <div class="h-16 w-11 overflow-hidden rounded border border-zinc-800 bg-zinc-900">
+                  <div class="relative w-11 shrink-0 overflow-hidden rounded border border-zinc-800 bg-zinc-900 aspect-[2/3]">
                     <% if cover_url.present? %>
-                      <img src="<%= cover_url %>" alt="" class="h-full w-full object-cover">
+                      <img src="<%= cover_url %>" alt="" class="absolute inset-0 h-full w-full object-cover">
                     <% end %>
                   </div>
                 </td>

@@ -60,6 +60,7 @@ class NowPlayingControllerTest < ActionDispatch::IntegrationTest
       assert_select "dd", text: "192.0.2.10"
       assert_select "p", text: "50% complete"
       assert_select "img[src*='/plex_cover']"
+      assert_select "div.self-start[class~='aspect-[2/3]'] > img.absolute.object-cover"
       assert_select "img[src*='%2Flibrary%2Fmetadata%2F1%2Fthumb%2F123']"
       assert_select "div[data-controller='auto-refresh'][data-auto-refresh-interval-value='10000']"
       assert_select "a[aria-label='Tile view'][aria-current='page']"
