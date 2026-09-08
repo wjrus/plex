@@ -90,7 +90,7 @@ class PlexStreamEvent < ApplicationRecord
       existing = rows.reject { |row| inserted_keys.include?([ row[:account_id], row[:rating_key], row[:viewed_at] ]) }
       if existing.any?
         upsert_all(existing, unique_by: :index_stream_events_on_machine_account_viewed_rating,
-          update_only: existing.first.keys - [ :created_at ])
+          update_only: existing.first.keys.map(&:to_s) - [ "created_at" ], record_timestamps: false)
       end
       inserted.rows.size
     end
