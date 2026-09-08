@@ -39,6 +39,12 @@ class PlexStreamEvent < ApplicationRecord
       .limit(limit)
   end
 
+  def self.latest_for_accounts(machine_identifier, account_ids)
+    for_machine(machine_identifier).where(account_id: account_ids)
+      .select("DISTINCT ON (account_id) account_id, viewed_at, title, full_title, media_type")
+      .order(:account_id, viewed_at: :desc, id: :desc)
+  end
+
   def self.upsert_streams!(machine_identifier, streams)
     rows = Array(streams).filter_map do |stream|
       account_id = stream[:account_id].to_s.presence
@@ -65,7 +71,7 @@ class PlexStreamEvent < ApplicationRecord
         updated_at: Time.current
       }
     end
-    return if rows.empty?
+    return 0 if rows.empty?
 
     rows = rows.reverse.uniq do |row|
       [
@@ -76,7 +82,18 @@ class PlexStreamEvent < ApplicationRecord
       ]
     end.reverse
 
-    upsert_all(rows, unique_by: :index_stream_events_on_machine_account_viewed_rating)
+    transaction do
+      # Count only this batch's inserts, without scanning the complete history.
+      inserted = insert_all(rows, unique_by: :index_stream_events_on_machine_account_viewed_rating,
+        returning: %w[account_id rating_key viewed_at])
+      inserted_keys = inserted.rows.to_set
+      existing = rows.reject { |row| inserted_keys.include?([ row[:account_id], row[:rating_key], row[:viewed_at] ]) }
+      if existing.any?
+        upsert_all(existing, unique_by: :index_stream_events_on_machine_account_viewed_rating,
+          update_only: existing.first.keys - [ :created_at ])
+      end
+      inserted.rows.size
+    end
   end
 
   def label

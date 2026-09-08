@@ -16,8 +16,8 @@ class PlexStreamEventTest < ActiveSupport::TestCase
     }
 
     assert_difference -> { PlexStreamEvent.count }, 1 do
-      PlexStreamEvent.upsert_streams!("machine-one", [ stream ])
-      PlexStreamEvent.upsert_streams!("machine-one", [ stream.merge(title: "Feature Updated") ])
+      assert_equal 1, PlexStreamEvent.upsert_streams!("machine-one", [ stream ])
+      assert_equal 0, PlexStreamEvent.upsert_streams!("machine-one", [ stream.merge(title: "Feature Updated") ])
     end
 
     event = PlexStreamEvent.find_by!(machine_identifier: "machine-one", account_id: "42")
@@ -49,6 +49,17 @@ class PlexStreamEventTest < ActiveSupport::TestCase
     assert_equal "Living Room Roku", event.player_title
     assert_equal "Roku", event.player_platform
     assert_equal "198.51.100.4", event.ip_address
+  end
+
+  test "batch counts only new unique events and preserves creation timestamps" do
+    stream = { account_id: "42", rating_key: "a", viewed_at: Time.current.to_i, title: "Original" }
+    PlexStreamEvent.upsert_streams!("machine-one", [ stream ])
+    original_created_at = PlexStreamEvent.find_by!(rating_key: "a").created_at
+    travel 1.hour do
+      assert_equal 1, PlexStreamEvent.upsert_streams!("machine-one", [ stream, stream.merge(rating_key: "b"), stream ])
+    end
+    assert_equal original_created_at, PlexStreamEvent.find_by!(rating_key: "a").created_at
+    assert_equal 0, PlexStreamEvent.upsert_streams!("machine-one", [])
   end
 
   test "deduplicates streams inside one upsert batch" do

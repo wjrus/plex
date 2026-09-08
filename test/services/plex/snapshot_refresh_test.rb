@@ -70,11 +70,46 @@ module Plex
       assert_equal "Local Plex", snapshot.server["name"]
       assert_equal "99", snapshot.users.first["share_id"]
       assert_equal "Viewer", snapshot.users.first["title"]
-      assert_equal "1556281941", snapshot.users.first["last_streamed_at"]
+      assert_equal 1556281941, snapshot.users.first["last_streamed_at"].to_i
       assert_equal "Movies", snapshot.users.first["libraries"].first["title"]
     end
 
-    test "preserves previous stream data when history lookup fails" do
+    test "ingests the whole window including owner history with no shares" do
+      with_paged_history do
+        client = FakeClient.new(server_payload: { server: {}, sections: [] }, shared_payload: [])
+        calls = []
+        now = Time.current.to_i
+        client.define_singleton_method(:playback_history) do |size:, offset:, **_|
+          calls << offset
+          offset.zero? ? [
+            { account_id: "42", rating_key: "a", viewed_at: now, title: "Feature" },
+            { account_id: "owner", rating_key: "b", viewed_at: now, title: "Owner feature" }
+          ] : [ { account_id: "42", rating_key: "c", viewed_at: now - 60, title: "Earlier feature" } ]
+        end
+        assert_difference "PlexStreamEvent.count", 3 do
+          SnapshotRefresh.new(client: client, machine_identifier: "synthetic-history").call
+        end
+        assert_equal [ 0, 2 ], calls
+        assert PlexStreamEvent.exists?(machine_identifier: "synthetic-history", account_id: "owner")
+      end
+    end
+
+    test "a failed later page preserves already saved events and raises" do
+      with_paged_history do
+        client = FakeClient.new(server_payload: { server: {}, sections: [] }, shared_payload: [])
+        now = Time.current.to_i
+        client.define_singleton_method(:playback_history) do |size:, offset:, **_|
+          raise Client::Error, "Synthetic timeout" unless offset.zero?
+
+          [ "a", "b" ].map { |key| { account_id: "42", rating_key: key, viewed_at: now, title: "Feature" } }
+        end
+        assert_difference "PlexStreamEvent.count", 2 do
+          assert_raises(Client::Error) { SnapshotRefresh.new(client: client, machine_identifier: "synthetic-history").call }
+        end
+      end
+    end
+
+    test "fails without replacing the snapshot when history lookup fails" do
       client = TimeoutHistoryClient.new(
         server_payload: {
           server: { name: "Local Plex" },
@@ -91,10 +126,25 @@ module Plex
         ]
       )
 
-      snapshot = SnapshotRefresh.new(client: client, machine_identifier: "machine-one").call
+      snapshot = ShareSnapshot.latest_for("machine-one")
+      assert_raises(Client::Error) do
+        SnapshotRefresh.new(client: client, machine_identifier: "machine-one").call
+      end
 
+      assert_equal snapshot, ShareSnapshot.latest_for("machine-one")
       assert_equal 1556281941, snapshot.users.first["last_streamed_at"]
       assert_equal "Movies - Feature", snapshot.users.first["last_streamed_title"]
+    end
+
+    private
+
+    def with_paged_history
+      original = ENV.to_h.slice("PLEX_HISTORY_DAYS", "PLEX_HISTORY_PAGE_SIZE")
+      ENV["PLEX_HISTORY_DAYS"] = "1"
+      ENV["PLEX_HISTORY_PAGE_SIZE"] = "2"
+      yield
+    ensure
+      %w[PLEX_HISTORY_DAYS PLEX_HISTORY_PAGE_SIZE].each { |key| ENV[key] = original[key] }
     end
   end
 end

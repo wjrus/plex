@@ -114,9 +114,7 @@ namespace :plex do
       end
 
       in_window_history = viewed_after ? history.reject { |stream| stream[:viewed_at].to_i < viewed_after.to_i } : history
-      before_count = PlexStreamEvent.where(machine_identifier: machine_identifier).count
-      PlexStreamEvent.upsert_streams!(machine_identifier, in_window_history)
-      saved_count = PlexStreamEvent.where(machine_identifier: machine_identifier).count - before_count
+      saved_count = PlexStreamEvent.upsert_streams!(machine_identifier, in_window_history)
       total_rows += history.size
       total_saved += saved_count
       pages_scanned += 1
@@ -156,6 +154,7 @@ namespace :plex do
       error_message: stopped_on_error ? "Stopped before page #{page + 1}" : nil,
       last_message: stopped_on_error ? "Backfill stopped before page #{page + 1}" : "Backfill complete"
     )
+    raise Plex::Client::Error, "Backfill stopped before page #{page + 1}; rerun with PLEX_HISTORY_START_PAGE=#{page + 1}" if stopped_on_error
   rescue StandardError => error
     refresh_run&.update!(
       status: "failed",

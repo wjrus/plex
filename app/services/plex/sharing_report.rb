@@ -46,7 +46,7 @@ module Plex
       library_lookup = build_library_lookup(server_data[:sections])
       shared_servers = client.shared_servers(machine_identifier)
       users_by_id = client.users.index_by { |user| user[:id].to_s }
-      last_streams_by_account_id = playback_history_by_account_id(shared_servers)
+      last_streams_by_account_id = history_streams
       pending_invites = pending_invites_for_server(server_data[:server], library_lookup, shared_servers)
 
       Report.new(
@@ -58,6 +58,44 @@ module Plex
         ).sort_by { |user| user.label.downcase },
         generated_at: Time.zone.now
       )
+    end
+
+    def history_streams
+      return {} unless include_history?
+
+      page_size = ENV.fetch("PLEX_HISTORY_PAGE_SIZE", "1000").to_i.clamp(1, 2_000)
+      max_pages = history_max_pages
+      viewed_after = history_viewed_after
+      streams = {}
+      page = 0
+
+      loop do
+        break if max_pages && page >= max_pages
+
+        history = client.playback_history(size: page_size, offset: page * page_size)
+        page_streams = history.reject { |stream| before_history_window?(stream, viewed_after) }
+        page_streams.each do |stream|
+          next if stream[:account_id].blank?
+
+          streams[stream[:account_id].to_s] ||= stream
+        end
+        stop_reason = if history.empty?
+          "empty page"
+        elsif viewed_after && history_older_than_window?(history, viewed_after)
+          "reached history window"
+        elsif history.size < page_size
+          "last page"
+        end
+        progress&.call(
+          phase: "page", page: page + 1, rows: history.size, matches: streams.size,
+          remaining: 0, remaining_labels: [], streams: streams,
+          page_streams: page_streams, stop_reason: stop_reason
+        )
+        break if stop_reason
+
+        page += 1
+      end
+      streams
     end
 
     private
@@ -140,9 +178,6 @@ module Plex
 
         build_pending_invite(invite, invite_server, library_lookup)
       end
-    rescue NoMethodError, Client::Error => error
-      Rails.logger.warn("[plex.invites] #{error.message}")
-      []
     end
 
     def build_pending_invite(invite, invite_server, library_lookup)
@@ -200,120 +235,6 @@ module Plex
       [ stream[:grandparent_title], stream[:parent_title], stream[:title] ].compact_blank.join(" - ")
     end
 
-    def playback_history_by_account_id(shared_servers)
-      return {} unless include_history?
-
-      account_ids = shared_servers.filter_map do |shared_server|
-        (shared_server[:user_id].presence || shared_server.dig(:user, :id)).to_s.presence
-      end.to_set
-      return {} if account_ids.empty?
-
-      labels_by_account_id = history_labels_by_account_id(shared_servers)
-      page_size = ENV.fetch("PLEX_HISTORY_PAGE_SIZE", "1000").to_i.clamp(1, 2_000)
-      max_pages = history_max_pages
-      viewed_after = history_viewed_after
-      streams = {}
-
-      page = 0
-      loop do
-        break if max_pages && page >= max_pages
-
-        history = fetch_history_page(page, page_size)
-        unless history
-          report_history_progress(
-            page: page + 1,
-            rows: 0,
-            account_ids: account_ids,
-            streams: streams,
-            labels_by_account_id: labels_by_account_id,
-            stop_reason: "Plex history request failed"
-          )
-          break
-        end
-        if history.empty?
-          report_history_progress(
-            page: page + 1,
-            rows: 0,
-            account_ids: account_ids,
-            streams: streams,
-            labels_by_account_id: labels_by_account_id,
-            stop_reason: "empty page"
-          )
-          break
-        end
-
-        history.each do |stream|
-          next if before_history_window?(stream, viewed_after)
-
-          account_id = stream[:account_id].to_s
-          next unless account_ids.include?(account_id)
-
-          streams[account_id] ||= stream
-        end
-
-        stop_reason = if streams.keys.to_set == account_ids
-          "all users matched"
-        elsif viewed_after && history_older_than_window?(history, viewed_after)
-          "reached history window"
-        elsif history.size < page_size
-          "last page"
-        end
-        report_history_progress(
-          page: page + 1,
-          rows: history.size,
-          account_ids: account_ids,
-          streams: streams,
-          page_streams: history.select { |stream| account_ids.include?(stream[:account_id].to_s) },
-          labels_by_account_id: labels_by_account_id,
-          stop_reason: stop_reason
-        )
-        break if stop_reason
-
-        page += 1
-      end
-
-      fill_missing_streams_by_account_id(
-        account_ids: account_ids,
-        streams: streams,
-        labels_by_account_id: labels_by_account_id,
-        viewed_after: viewed_after
-      )
-      streams
-    end
-
-    def fetch_history_page(page, page_size)
-      client.playback_history(size: page_size, offset: page * page_size)
-    rescue Client::Error => error
-      Rails.logger.warn("[plex.history] #{error.message}")
-      nil
-    end
-
-    def fill_missing_streams_by_account_id(account_ids:, streams:, labels_by_account_id:, viewed_after:)
-      remaining_ids = account_ids - streams.keys.to_set
-      return if remaining_ids.empty?
-
-      remaining_ids.each_with_index do |account_id, index|
-        history = fetch_account_history(account_id)
-        stream = history.first
-        streams[account_id] = stream if stream && !before_history_window?(stream, viewed_after)
-
-        report_account_lookup_progress(
-          account_id: account_id,
-          label: labels_by_account_id.fetch(account_id, account_id),
-          index: index + 1,
-          total: remaining_ids.size,
-          account_ids: account_ids,
-          streams: streams
-        )
-      end
-    end
-
-    def fetch_account_history(account_id)
-      client.playback_history(account_id: account_id, size: 1, offset: 0)
-    rescue Client::Error => error
-      Rails.logger.warn("[plex.history] account #{account_id}: #{error.message}")
-      []
-    end
 
     def history_max_pages
       value = ENV.fetch("PLEX_HISTORY_MAX_PAGES", "all")
@@ -339,48 +260,6 @@ module Plex
       oldest_viewed_at && oldest_viewed_at < viewed_after.to_i
     end
 
-    def history_labels_by_account_id(shared_servers)
-      shared_servers.each_with_object({}) do |shared_server, labels|
-        account_id = (shared_server[:user_id].presence || shared_server.dig(:user, :id)).to_s
-        labels[account_id] = shared_server.dig(:user, :title).presence ||
-          shared_server.dig(:user, :username).presence ||
-          shared_server.dig(:user, :email).presence ||
-          account_id
-      end
-    end
-
-    def report_history_progress(page:, rows:, account_ids:, streams:, labels_by_account_id:, stop_reason:, page_streams: [])
-      return unless progress
-
-      remaining_ids = account_ids - streams.keys.to_set
-      progress.call(
-        phase: "page",
-        page: page,
-        rows: rows,
-        matches: streams.size,
-        remaining: remaining_ids.size,
-        stop_reason: stop_reason,
-        remaining_labels: stop_reason ? remaining_ids.map { |account_id| labels_by_account_id.fetch(account_id, account_id) } : [],
-        streams: streams,
-        page_streams: page_streams
-      )
-    end
-
-    def report_account_lookup_progress(account_id:, label:, index:, total:, account_ids:, streams:)
-      return unless progress
-
-      remaining_ids = account_ids - streams.keys.to_set
-      progress.call(
-        phase: "account",
-        account_id: account_id,
-        label: label,
-        index: index,
-        total: total,
-        matches: streams.size,
-        remaining: remaining_ids.size,
-        streams: streams
-      )
-    end
 
     def user_server_share(user, shared_server)
       Array(user[:servers]).find do |server|

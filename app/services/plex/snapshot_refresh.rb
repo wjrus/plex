@@ -8,13 +8,18 @@ module Plex
     end
 
     def call
+      SharingReport.new(
+        client: client, machine_identifier: machine_identifier,
+        include_history: include_history, progress: method(:record_history_page)
+      ).history_streams
+
       report = SharingReport.new(
         client: client,
         machine_identifier: machine_identifier,
         progress: progress,
-        include_history: include_history
+        include_history: false
       ).call
-      previous_users = previous_streams_by_user_id
+      previous_users = previous_streams_by_user_id(report.users.map { |user| user.id.to_s })
 
       ShareSnapshot.create!(
         machine_identifier: machine_identifier,
@@ -28,6 +33,12 @@ module Plex
     private
 
     attr_reader :client, :machine_identifier, :progress, :include_history
+
+    def record_history_page(event)
+      PlexStreamEvent.upsert_streams!(machine_identifier, event.fetch(:page_streams))
+      ShareSnapshot.checkpoint_streams!(machine_identifier, event.fetch(:streams))
+      progress&.call(event)
+    end
 
     def snapshot_user(user, previous_users)
       attributes = user.to_h.merge(libraries: user.libraries.map(&:to_h))
@@ -44,15 +55,19 @@ module Plex
       )
     end
 
-    def previous_streams_by_user_id
-      ShareSnapshot.where(machine_identifier: machine_identifier).latest_first.each_with_object({}) do |snapshot, streams|
-        snapshot.users.each do |user|
-          next if streams.key?(user["id"].to_s)
-          next if user["last_streamed_at"].blank?
+    def previous_streams_by_user_id(user_ids)
+      streams = Array(ShareSnapshot.latest_for(machine_identifier)&.users).index_by { |user| user["id"].to_s }
+      PlexStreamEvent.latest_for_accounts(machine_identifier, user_ids).each do |event|
+        previous = streams[event.account_id]
+        next if previous && previous["last_streamed_at"].to_i >= event.viewed_at.to_i
 
-          streams[user["id"].to_s] = user
-        end
+        streams[event.account_id] = {
+          "last_streamed_at" => event.viewed_at.to_i,
+          "last_streamed_title" => event.label,
+          "last_streamed_type" => event.media_type
+        }
       end
+      streams
     end
 
     def stringify(value)
