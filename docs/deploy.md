@@ -216,7 +216,21 @@ Or use the helper scripts:
 ```
 
 Backfill writes progress after each page. If a connection drops or Plex times
-out too many times, resume from the next page shown in the task output.
+out too many times, resume from the resume page shown in the task output. When
+a page exhausts its retries, that is the failed page itself, not the next one.
+The task marks the run failed and exits nonzero; previously saved pages remain
+available. Re-reading pages updates metadata without creating duplicate events.
+
+Daily refreshes persist all accounts and events within their configured window,
+including the owner, rather than stopping once shared users have been matched.
+Plex/API failures are reported as failed runs. Metadata-only refreshes recover
+last-streamed values from the latest snapshot and local event storage.
+
+Deploy includes a concurrent PostgreSQL index migration on history server/date
+columns. Allow the database preparation step to finish before restarting the
+application. No extra cache service or history backfill is required for the
+query improvements. Reload any library edit forms left open across deployment
+before saving; stale forms are rejected.
 
 ## Useful Commands
 

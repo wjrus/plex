@@ -109,6 +109,32 @@ module Plex
       end
     end
 
+    test "metadata refresh restores stored history while reading only the latest snapshot" do
+      machine = "synthetic-archive"
+      20.times do |index|
+        ShareSnapshot.create!(machine_identifier: machine, server: {}, libraries: [], users: [], fetched_at: index.days.ago)
+      end
+      viewed_at = 1.hour.ago.change(usec: 0)
+      PlexStreamEvent.upsert_streams!(machine, [
+        { account_id: "42", rating_key: "feature", title: "Stored feature", type: "movie", viewed_at: viewed_at.to_i }
+      ])
+      client = TimeoutHistoryClient.new(
+        server_payload: { server: {}, sections: [] },
+        shared_payload: [ { user: { id: "42", username: "viewer" }, id: "99", pending: "0", sections: [] } ]
+      )
+      snapshot_reads = 0
+      subscriber = ->(event) { snapshot_reads += event.payload[:record_count] if event.payload[:class_name] == "ShareSnapshot" }
+      snapshot = nil
+      ActiveSupport::Notifications.subscribed(subscriber, "instantiation.active_record") do
+        snapshot = SnapshotRefresh.new(client: client, machine_identifier: machine, include_history: false).call
+      end
+
+      assert_equal 1, snapshot_reads
+      user = snapshot.users.find { |row| row["id"].to_s == "42" }
+      assert_equal viewed_at.to_i, user["last_streamed_at"]
+      assert_equal "Stored feature", user["last_streamed_title"]
+    end
+
     test "fails without replacing the snapshot when history lookup fails" do
       client = TimeoutHistoryClient.new(
         server_payload: {

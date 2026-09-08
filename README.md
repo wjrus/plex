@@ -87,7 +87,8 @@ not already in the share snapshot.
 - **User detail**: manage libraries, edit notes, cancel pending invites, remove
   access, review stream history, and inspect per-user stats.
 - **Now**: current Plex sessions with cover art, player/IP data when available,
-  and background refreshes every 10 seconds.
+  and background refreshes 10 seconds after the previous request completes.
+  Polling pauses in hidden tabs and cancels on navigation.
 - **Stats**: completed-play stats for active libraries only. Stats default to
   the last 7 days and can be toggled to 30 days, past year, or all time.
 - **Log**: audit trail for admin actions such as library changes, note edits,
@@ -102,12 +103,21 @@ app will clean up the stale local row when Plex returns `404`.
 Suppressed users are local-history accounts you do not want in the default
 Access or Users lists. Suppression never deletes playback history.
 
+Access changes are serialized per Plex server. If another admin is updating
+access, retry after their change finishes. Library forms opened before an access
+change must be reloaded before saving; stale selections are rejected.
+
+Successful Plex actions are logged before refreshing the local cache. An invite
+can therefore succeed even if the following refresh fails; the warning will ask
+you to retry the refresh from Maintenance, not resend the invitation. Local note
+and suppression changes are saved in the same transaction as their audit entry.
+
 ## Refresh behavior
 
 Access and Users render the newest `ShareSnapshot` row for the configured
 machine identifier. The Maintenance page has a "Refresh from Plex" action that
 queues a metadata refresh without scanning playback history, preserving existing
-last-streamed data from previous snapshots. The refresh panel shows whether a
+last-streamed data from the newest snapshot and stored stream events. The refresh panel shows whether a
 refresh is queued/running, the last message, and history progress when history
 is included.
 
@@ -125,8 +135,9 @@ the past 730 days, roughly 24 months. To intentionally scan everything, run:
 PLEX_HISTORY_DAYS=all bin/rails plex:refresh
 ```
 
-Use the rake task when you want to refresh last-streamed history for shared
-users. For one-time population of the local stream-events table, use:
+The task persists every history page in the requested window, including owner
+and non-shared accounts. It does not stop when all shared users have been found.
+For one-time population of the local stream-events table, use:
 
 ```sh
 bin/rails plex:backfill_history
@@ -136,8 +147,11 @@ PLEX_HISTORY_START_PAGE=179 PLEX_HISTORY_DAYS=all bin/rails plex:backfill_histor
 
 `PLEX_HISTORY_RETRIES` controls how many times each history page is retried
 after a Plex timeout before the task stops and prints the resume page. Backfill
-saves after each page, so it is safe to resume from the next page printed in the
-logs.
+saves after each page. If retries are exhausted, the task marks the run failed,
+exits nonzero, and prints the page to resume. Resume at that failed page, not the
+page after it. Re-reading saved pages updates their metadata without duplicating
+events. Normal refresh failures also remain failures rather than reporting a
+successful partial refresh; pages already saved are retained.
 
 In Docker Compose production, the `daily_refresh` service runs the same rake task
 once per day with `PLEX_DAILY_REFRESH_DAYS=1`. Set `PLEX_DAILY_REFRESH_AT` in
@@ -162,12 +176,22 @@ Short periods show daily activity buckets. Past-year and all-time views show
 monthly buckets. User detail pages split top titles into top series and top
 movies.
 
+The selected period is applied before play deduplication. Chart grouping and
+counts run in PostgreSQL without loading each history event into Rails memory.
+The server/date index also supports bounded history scans.
+
 ## Security Notes
 
 The app is intended to run behind Google OAuth and a TLS-terminating reverse
 proxy. For production behind TLS, set `PLEX_ASSUME_SSL=true`. Set
 `PLEX_FORCE_SSL=true` only when Rails itself should force SSL/HSTS behavior for
 your deployment.
+
+The Google admin allowlist is checked on every authenticated request. Removing
+an email revokes its existing session on the next request after the updated
+configuration is loaded (restart the app when changing environment variables).
+Cover requests stay behind authentication and enforce a 10 MiB limit while
+streaming from Plex, including responses without a Content-Length header.
 
 Playback history and now-playing samples can include Plex metadata, device
 names, IP addresses, session identifiers, and watch history. Treat database
@@ -180,6 +204,7 @@ opened in Excel, Numbers, or Google Sheets.
 
 ```sh
 bin/rails test
+node --experimental-vm-modules --test test/javascript/*_test.mjs
 bin/rubocop
 bundle exec brakeman -q --no-pager
 bin/bundler-audit
@@ -189,6 +214,8 @@ bin/rails restart
 
 `bin/bundler-audit` refreshes the advisory database before checking the locked
 gems. It requires network access and fails if the database cannot be updated.
+JavaScript controller tests use Node's built-in test runner (Node 22 or newer),
+with VM modules enabled to stub Stimulus without adding npm dependencies.
 
 Production helper scripts:
 
